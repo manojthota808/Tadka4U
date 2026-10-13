@@ -1,23 +1,44 @@
-import { createFileRoute, Link } from '@tanstack/react-router';
-import { useState, type FormEvent } from 'react';
-import { Phone, Mail, MessageSquare, Send, Copy, Check, Sparkles, Code2, Globe, ShieldCheck, ArrowRight, User, Users, Film, Palette, Laptop } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { PageLayout, AppBand, pageHead } from '@/components/streaming';
-import { toast } from 'sonner';
-import teamPhoto from '@/assets/team.jpg';
-import manojPhoto from '@/assets/manoj-thota.jpg';
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useState, type FormEvent } from "react";
+import {
+  Phone,
+  Mail,
+  MessageSquare,
+  Send,
+  Copy,
+  Check,
+  Sparkles,
+  Code2,
+  Globe,
+  ShieldCheck,
+  ArrowRight,
+  User,
+  Users,
+  Film,
+  Palette,
+  Laptop,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { PageLayout, AppBand, pageHead } from "@/frontend";
+import { toast } from "sonner";
+import teamPhoto from "@/assets/team.jpg";
+import manojPhoto from "@/assets/manoj-thota.jpg";
 
-export const Route = createFileRoute('/contact')({
-  head: () => pageHead('Contact & Team | Tadka4U', 'Get in touch with Manoj Thota and the team behind Tadka4U.'),
+export const Route = createFileRoute("/contact")({
+  head: () =>
+    pageHead(
+      "Contact & Team | Tadka4U",
+      "Get in touch with Manoj Thota and the team behind Tadka4U.",
+    ),
   component: Contact,
 });
 
 function Contact() {
   const [copiedField, setCopiedField] = useState<string | null>(null);
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [subject, setSubject] = useState('');
-  const [message, setMessage] = useState('');
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [subject, setSubject] = useState("");
+  const [message, setMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
 
   const copyToClipboard = (text: string, label: string) => {
@@ -32,11 +53,11 @@ function Contact() {
     setIsSending(true);
     setTimeout(() => {
       setIsSending(false);
-      toast.success('Thank you! Your message has been sent to Manoj Thota.');
-      setName('');
-      setEmail('');
-      setSubject('');
-      setMessage('');
+      toast.success("Thank you! Your message has been sent to Manoj Thota.");
+      setName("");
+      setEmail("");
+      setSubject("");
+      setMessage("");
     }, 900);
   };
 
@@ -67,7 +88,9 @@ function Contact() {
             </div>
             <h1>Manoj Thota</h1>
             <p className="contact-tagline">
-              Creator and developer of <strong>Tadka4U</strong>. Specializing in crafting high-impact streaming web applications, intuitive user interfaces, and high-performance digital products.
+              Creator and developer of <strong>Tadka4U</strong>. Specializing in
+              crafting high-impact streaming web applications, intuitive user
+              interfaces, and high-performance digital products.
             </p>
 
             <div className="contact-quick-actions">
@@ -96,7 +119,9 @@ function Contact() {
             </div>
             <h2>The Team Behind Tadka4U</h2>
             <p className="contact-team-subtitle">
-              Passionate creators, developers, and visionaries building cinematic, high-impact vertical drama experiences for audiences worldwide.
+              Passionate creators, developers, and visionaries building
+              cinematic, high-impact vertical drama experiences for audiences
+              worldwide.
             </p>
           </div>
 
@@ -115,7 +140,8 @@ function Contact() {
                   <span>Tadka4U Team</span>
                 </div>
                 <p className="team-photo-quote">
-                  "Building immersive short-format entertainment, one frame at a time."
+                  "Building immersive short-format entertainment, one frame at a
+                  time."
                 </p>
               </div>
             </div>
@@ -127,7 +153,10 @@ function Contact() {
                 <Laptop className="size-5" />
               </div>
               <h4>Engineering & Architecture</h4>
-              <p>Scalable cloud infrastructure, ultra-fast video delivery, and reactive modern web experiences.</p>
+              <p>
+                Scalable cloud infrastructure, ultra-fast video delivery, and
+                reactive modern web experiences.
+              </p>
             </div>
 
             <div className="team-pillar-card">
@@ -135,7 +164,10 @@ function Contact() {
                 <Palette className="size-5" />
               </div>
               <h4>Product Design & UX</h4>
-              <p>Cinematic aesthetics, dark-mode immersion, and seamless navigation tailored for drama fans.</p>
+              <p>
+                Cinematic aesthetics, dark-mode immersion, and seamless
+                navigation tailored for drama fans.
+              </p>
             </div>
 
             <div className="team-pillar-card">
@@ -143,7 +175,10 @@ function Contact() {
                 <Film className="size-5" />
               </div>
               <h4>Creative Direction</h4>
-              <p>Curating binge-worthy vertical mini-series, rich emotional narratives, and fresh episodic content.</p>
+              <p>
+                Curating binge-worthy vertical mini-series, rich emotional
+                narratives, and fresh episodic content.
+              </p>
             </div>
           </div>
         </section>
@@ -155,7 +190,10 @@ function Contact() {
             </div>
             <h3>Direct Phone</h3>
             <p className="contact-card-value">+1 227 258 5696</p>
-            <p className="contact-card-desc">Call or message directly for collaborations, inquiries, or opportunities.</p>
+            <p className="contact-card-desc">
+              Call or message directly for collaborations, inquiries, or
+              opportunities.
+            </p>
             <div className="contact-card-buttons">
               <Button variant="cinema" size="sm" asChild>
                 <a href="tel:+12272585696">Call Now</a>
@@ -163,10 +201,14 @@ function Contact() {
               <Button
                 variant="glass"
                 size="sm"
-                onClick={() => copyToClipboard('+12272585696', 'Phone number')}
+                onClick={() => copyToClipboard("+12272585696", "Phone number")}
               >
-                {copiedField === 'Phone number' ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
-                {copiedField === 'Phone number' ? 'Copied' : 'Copy'}
+                {copiedField === "Phone number" ? (
+                  <Check className="size-3.5" />
+                ) : (
+                  <Copy className="size-3.5" />
+                )}
+                {copiedField === "Phone number" ? "Copied" : "Copy"}
               </Button>
             </div>
           </div>
@@ -177,7 +219,10 @@ function Contact() {
             </div>
             <h3>Email Address</h3>
             <p className="contact-card-value">thotamanojnaidu@gmail.com</p>
-            <p className="contact-card-desc">Official email address for design consultations and project proposals.</p>
+            <p className="contact-card-desc">
+              Official email address for design consultations and project
+              proposals.
+            </p>
             <div className="contact-card-buttons">
               <Button variant="cinema" size="sm" asChild>
                 <a href="mailto:thotamanojnaidu@gmail.com">Send Email</a>
@@ -185,10 +230,16 @@ function Contact() {
               <Button
                 variant="glass"
                 size="sm"
-                onClick={() => copyToClipboard('thotamanojnaidu@gmail.com', 'Email')}
+                onClick={() =>
+                  copyToClipboard("thotamanojnaidu@gmail.com", "Email")
+                }
               >
-                {copiedField === 'Email' ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
-                {copiedField === 'Email' ? 'Copied' : 'Copy'}
+                {copiedField === "Email" ? (
+                  <Check className="size-3.5" />
+                ) : (
+                  <Copy className="size-3.5" />
+                )}
+                {copiedField === "Email" ? "Copied" : "Copy"}
               </Button>
             </div>
           </div>
@@ -199,16 +250,24 @@ function Contact() {
             </div>
             <h3>Handle & Profile</h3>
             <p className="contact-card-value">thotamanojnaidu</p>
-            <p className="contact-card-desc">Connect across platforms with user handle @thotamanojnaidu.</p>
+            <p className="contact-card-desc">
+              Connect across platforms with user handle @thotamanojnaidu.
+            </p>
             <div className="contact-card-buttons">
               <Button
                 variant="glass"
                 size="sm"
                 className="w-full"
-                onClick={() => copyToClipboard('thotamanojnaidu', 'Handle')}
+                onClick={() => copyToClipboard("thotamanojnaidu", "Handle")}
               >
-                {copiedField === 'Handle' ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
-                {copiedField === 'Handle' ? 'Copied Handle' : 'Copy @thotamanojnaidu'}
+                {copiedField === "Handle" ? (
+                  <Check className="size-3.5" />
+                ) : (
+                  <Copy className="size-3.5" />
+                )}
+                {copiedField === "Handle"
+                  ? "Copied Handle"
+                  : "Copy @thotamanojnaidu"}
               </Button>
             </div>
           </div>
@@ -223,7 +282,8 @@ function Contact() {
               </div>
               <h2>Send a message to Manoj</h2>
               <p className="section-subtitle">
-                Have a question or looking to build a new product? Leave your message below.
+                Have a question or looking to build a new product? Leave your
+                message below.
               </p>
             </div>
 
@@ -281,9 +341,14 @@ function Contact() {
                 />
               </div>
 
-              <Button variant="cinema" type="submit" disabled={isSending} className="w-full sm:w-auto">
+              <Button
+                variant="cinema"
+                type="submit"
+                disabled={isSending}
+                className="w-full sm:w-auto"
+              >
                 <Send className="size-4" />
-                {isSending ? 'Sending message...' : 'Send Message'}
+                {isSending ? "Sending message..." : "Send Message"}
               </Button>
             </form>
           </div>

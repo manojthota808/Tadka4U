@@ -1,4 +1,5 @@
 # Tadka4U website
+
 - [x] Recreate the streaming experience with a distinctive visual system and cinematic imagery.
 - [x] Add browsing, search, genre filters, show details, and watchlist interactions.
 - [x] Connect account and watchlist persistence through Lovable Cloud.

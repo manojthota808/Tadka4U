@@ -1,20 +1,30 @@
-import { createFileRoute, notFound } from '@tanstack/react-router';
-import { useState } from 'react';
-import { Plus, Check, Play, Star } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { PageLayout, Poster, Shelf, useAccount, pageHead } from '@/components/streaming';
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
-import { shows } from '@/lib/catalog';
+import { createFileRoute, notFound } from "@tanstack/react-router";
+import { useState } from "react";
+import { Plus, Check, Play, Star } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { PageLayout, Poster, Shelf, useAccount, pageHead } from "@/frontend";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
+import { catalogApi, shows } from "@/api";
 
 const EPISODE_LIMIT = 4;
 
-export const Route = createFileRoute('/show/$showId')({
+export const Route = createFileRoute("/show/$showId")({
   loader: ({ params }) => {
-    const show = shows.find((s) => s.id === params.showId);
+    const show = catalogApi.getShowById(params.showId);
     if (!show) throw notFound();
     return { show };
   },
-  head: ({ loaderData }) => pageHead(loaderData?.show.title ?? 'Story', loaderData?.show.description ?? 'Discover a Tadka4U story.'),
+  head: ({ loaderData }) =>
+    pageHead(
+      loaderData?.show.title ?? "Story",
+      loaderData?.show.description ?? "Discover a Tadka4U story.",
+    ),
   component: ShowDetail,
 });
 
@@ -58,22 +68,35 @@ function ShowDetail() {
                 <h2 className="text-xl">
                   Episode {episode} · {show.title}
                 </h2>
-                <img src={show.image} width={512} height={1024} alt={`${show.title} episode artwork`} />
-                <p>This is an illustrative story preview. Full episodes for this demo have not been uploaded.</p>
+                <img
+                  src={show.image}
+                  width={512}
+                  height={1024}
+                  alt={`${show.title} episode artwork`}
+                />
+                <p>
+                  This is an illustrative story preview. Full episodes for this
+                  demo have not been uploaded.
+                </p>
               </section>
             )}
           </div>
         </div>
         <section className="episode-shelf">
           <h2 className="text-xl">Episodes</h2>
-          <p className="section-subtitle !my-2">Four episodes are available to preview.</p>
-          <Carousel opts={{ align: 'start' }} className="episode-carousel">
+          <p className="section-subtitle !my-2">
+            Four episodes are available to preview.
+          </p>
+          <Carousel opts={{ align: "start" }} className="episode-carousel">
             <CarouselContent className="-ml-4">
               {Array.from({ length: episodeCount }, (_, i) => (
-                <CarouselItem key={i} className="pl-4 basis-[78%] sm:basis-[48%] md:basis-[36%] lg:basis-[24%]">
+                <CarouselItem
+                  key={i}
+                  className="pl-4 basis-[78%] sm:basis-[48%] md:basis-[36%] lg:basis-[24%]"
+                >
                   <button
                     type="button"
-                    className={`episode-card${episode === i + 1 ? ' selected' : ''}`}
+                    className={`episode-card${episode === i + 1 ? " selected" : ""}`}
                     onClick={() => setEpisode(i + 1)}
                     aria-label={`Preview episode ${i + 1}`}
                     aria-pressed={episode === i + 1}
@@ -84,12 +107,21 @@ function ShowDetail() {
                 </CarouselItem>
               ))}
             </CarouselContent>
-            <CarouselPrevious variant="glass" className="left-0 border-border bg-card/90" />
-            <CarouselNext variant="glass" className="right-0 border-border bg-card/90" />
+            <CarouselPrevious
+              variant="glass"
+              className="left-0 border-border bg-card/90"
+            />
+            <CarouselNext
+              variant="glass"
+              className="right-0 border-border bg-card/90"
+            />
           </Carousel>
         </section>
         <div className="mt-14">
-          <Shelf title="More stories to fall for" items={shows.filter((s) => s.id !== show.id).slice(0, 6)} />
+          <Shelf
+            title="More stories to fall for"
+            items={shows.filter((s) => s.id !== show.id).slice(0, 6)}
+          />
         </div>
       </main>
     </PageLayout>

@@ -30,7 +30,16 @@
     "exactOptionalPropertyTypes": true,
     "noUncheckedSideEffectImports": true,
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@/api": ["./src/api/index.ts"],
+      "@/api/*": ["./src/api/*"],
+      "@/backend": ["./src/backend/index.ts"],
+      "@/backend/*": ["./src/backend/*"],
+      "@/frontend": ["./src/frontend/index.ts"],
+      "@/frontend/*": ["./src/frontend/*", "./src/*"],
+      "@/components/*": ["./src/components/*"],
+      "@/hooks/*": ["./src/hooks/*"],
+      "@/routes/*": ["./src/routes/*"]
     }
   }
 }

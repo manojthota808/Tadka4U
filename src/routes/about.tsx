@@ -1,4 +1,40 @@
-import {createFileRoute} from '@tanstack/react-router';
-import {PageLayout,AppBand,pageHead} from '@/components/streaming';
-export const Route=createFileRoute('/about')({head:()=>pageHead('About the stories','Discover a cinematic short-drama experience on Tadka4U.'),component:About});
-function About(){return <PageLayout><main className="inner-page"><h1>Short stories. Lasting impressions.</h1><div className="prose"><p>Romance that pulls you in. Mysteries that keep you guessing. Characters you can’t forget. This experience brings cinematic storytelling into the moments between everything else.</p><h2>About this experience</h2><p>This is an independently built Tadka4U demonstration. The show titles, descriptions, ratings, episode counts and artwork are illustrative. No licensed episodes or paid subscriptions are offered here.</p><h2>Your own collection</h2><p>Create an account to keep a personal list of stories. Explore the catalog, find your favorite genre, and discover something unexpected.</p></div><AppBand/></main></PageLayout>}
+import { createFileRoute } from "@tanstack/react-router";
+import { PageLayout, AppBand, pageHead } from "@/frontend";
+export const Route = createFileRoute("/about")({
+  head: () =>
+    pageHead(
+      "About the stories",
+      "Discover a cinematic short-drama experience on Tadka4U.",
+    ),
+  component: About,
+});
+function About() {
+  return (
+    <PageLayout>
+      <main className="inner-page">
+        <h1>Short stories. Lasting impressions.</h1>
+        <div className="prose">
+          <p>
+            Romance that pulls you in. Mysteries that keep you guessing.
+            Characters you can’t forget. This experience brings cinematic
+            storytelling into the moments between everything else.
+          </p>
+          <h2>About this experience</h2>
+          <p>
+            This is an independently built Tadka4U demonstration. The show
+            titles, descriptions, ratings, episode counts and artwork are
+            illustrative. No licensed episodes or paid subscriptions are offered
+            here.
+          </p>
+          <h2>Your own collection</h2>
+          <p>
+            Create an account to keep a personal list of stories. Explore the
+            catalog, find your favorite genre, and discover something
+            unexpected.
+          </p>
+        </div>
+        <AppBand />
+      </main>
+    </PageLayout>
+  );
+}
