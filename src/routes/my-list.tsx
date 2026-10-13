@@ -21,12 +21,25 @@ function MyList() {
         <p className="section-subtitle mb-8">
           Your stories, ready when you are.
         </p>
-        {user && list.length ? (
-          <div className="show-grid">
-            {list.map((s) => (
-              <ShowCard key={s.id} show={s} />
-            ))}
-          </div>
+        {list.length ? (
+          <>
+            {!user && (
+              <div className="mb-6 p-4 rounded-xl border border-white/10 bg-white/5 backdrop-blur-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <p className="text-sm text-muted-foreground">
+                  You are viewing saved shows on this browser. Sign in to sync
+                  your watchlist across all devices.
+                </p>
+                <Button variant="cinema" size="sm" asChild>
+                  <Link to="/sign-in/$">Sign in</Link>
+                </Button>
+              </div>
+            )}
+            <div className="show-grid">
+              {list.map((s) => (
+                <ShowCard key={s.id} show={s} />
+              ))}
+            </div>
+          </>
         ) : (
           <div className="empty-state">
             <Bookmark />
@@ -40,11 +53,15 @@ function MyList() {
                 ? "Save a show to make it yours."
                 : "Sign in to keep your favorite stories in one place."}
             </p>
-            <Button variant="cinema" asChild>
-              <Link to={user ? "/explore" : "/auth"}>
-                {user ? "Explore shows" : "Sign in"}
-              </Link>
-            </Button>
+            {user ? (
+              <Button variant="cinema" asChild>
+                <Link to="/explore">Explore shows</Link>
+              </Button>
+            ) : (
+              <Button variant="cinema" asChild>
+                <Link to="/sign-in/$">Sign in</Link>
+              </Button>
+            )}
           </div>
         )}
       </main>

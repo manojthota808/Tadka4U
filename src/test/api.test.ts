@@ -1,5 +1,5 @@
-import { describe, it, expect } from "vitest";
-import { catalogApi, shows, genres } from "@/api";
+import { describe, it, expect, beforeEach } from "vitest";
+import { catalogApi, watchlistApi, shows, genres } from "@/api";
 
 describe("API Layer - Catalog API", () => {
   it("returns all shows from the catalog", () => {
@@ -41,5 +41,57 @@ describe("API Layer - Catalog API", () => {
     const featured = catalogApi.getFeaturedShows();
     expect(featured.length).toBeGreaterThan(0);
     expect(featured.every((s) => Boolean(s.badge))).toBe(true);
+  });
+});
+
+describe("API Layer - Watchlist API", () => {
+  const testUser = "test-user-123";
+
+  beforeEach(() => {
+    if (typeof window !== "undefined" && window.localStorage) {
+      window.localStorage.clear();
+    }
+  });
+
+  it("fetches empty watchlist without error", async () => {
+    const { showIds, error } = await watchlistApi.getUserWatchlist(testUser);
+    expect(error).toBeNull();
+    expect(showIds).toEqual([]);
+  });
+
+  it("adds show to watchlist successfully", async () => {
+    const { error } = await watchlistApi.addToWatchlist(
+      testUser,
+      "midnight-promise",
+    );
+    expect(error).toBeNull();
+
+    const { showIds } = await watchlistApi.getUserWatchlist(testUser);
+    expect(showIds).toContain("midnight-promise");
+  });
+
+  it("toggles show in watchlist (removes when present)", async () => {
+    await watchlistApi.addToWatchlist(testUser, "midnight-promise");
+    const { added, error } = await watchlistApi.toggleWatchlist(
+      testUser,
+      "midnight-promise",
+      true,
+    );
+    expect(error).toBeNull();
+    expect(added).toBe(false);
+
+    const { showIds } = await watchlistApi.getUserWatchlist(testUser);
+    expect(showIds).not.toContain("midnight-promise");
+  });
+
+  it("migrates guest watchlist items to user account", async () => {
+    await watchlistApi.addToWatchlist("guest", "shadows-of-delhi");
+    await watchlistApi.migrateWatchlist("guest", testUser);
+
+    const { showIds } = await watchlistApi.getUserWatchlist(testUser);
+    expect(showIds).toContain("shadows-of-delhi");
+
+    const { showIds: guestIds } = await watchlistApi.getUserWatchlist("guest");
+    expect(guestIds).toEqual([]);
   });
 });

@@ -48,23 +48,52 @@ export function AccountProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let active = true;
     if (!user) {
-      setSaved([]);
+      watchlistApi.getUserWatchlist("guest").then(({ showIds }) => {
+        if (active) {
+          setSaved(showIds);
+        }
+      });
       return;
     }
-    watchlistApi.getUserWatchlist(user.id).then(({ showIds, error }) => {
-      if (active) {
-        setSaved(showIds);
-        if (error) toast.error("Your list could not load. Please try again.");
-      }
+
+    // Migrate any shows saved while visiting as a guest into the user's account
+    watchlistApi.migrateWatchlist("guest", user.id).then(() => {
+      if (!active) return;
+      watchlistApi.getUserWatchlist(user.id).then(({ showIds, error }) => {
+        if (active) {
+          setSaved(showIds);
+          if (error) {
+            console.warn("[Watchlist] Failed to load list:", error.message);
+          }
+        }
+      });
     });
+
     return () => {
       active = false;
     };
   }, [user]);
 
   const toggle = async (id: string) => {
+    const targetUserId = user ? user.id : "guest";
+    const exists = saved.includes(id);
+
+    const { added, error } = await watchlistApi.toggleWatchlist(
+      targetUserId,
+      id,
+      exists,
+    );
+
+    if (error) {
+      toast.error("Could not update your list. Please try again.");
+      return;
+    }
+
+    setSaved((old) => (added ? [...old, id] : old.filter((s) => s !== id)));
+
     if (!user) {
-      toast("Sign in to save your favorites", {
+      toast.success(added ? "Added to My List" : "Removed from My List", {
+        description: "Sign in to keep your list synced across devices.",
         action: {
           label: "Sign in",
           onClick: () => {
@@ -72,20 +101,9 @@ export function AccountProvider({ children }: { children: ReactNode }) {
           },
         },
       });
-      return;
+    } else {
+      toast.success(added ? "Added to My List" : "Removed from My List");
     }
-    const exists = saved.includes(id);
-    const { added, error } = await watchlistApi.toggleWatchlist(
-      user.id,
-      id,
-      exists,
-    );
-    if (error) {
-      toast.error("Could not update your list. Please try again.");
-      return;
-    }
-    setSaved((old) => (added ? [...old, id] : old.filter((s) => s !== id)));
-    toast.success(added ? "Added to My List" : "Removed from My List");
   };
 
   return (
