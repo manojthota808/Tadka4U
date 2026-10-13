@@ -10,7 +10,7 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
-import { catalogApi, shows } from "@/api";
+import { catalogApi, useShows } from "@/api";
 
 const EPISODE_LIMIT = 4;
 
@@ -30,6 +30,7 @@ export const Route = createFileRoute("/show/$showId")({
 
 function ShowDetail() {
   const { show } = Route.useLoaderData();
+  const allShows = useShows();
   const { saved, toggle } = useAccount();
   const [episode, setEpisode] = useState<number | null>(null);
   const episodeCount = Math.min(show.episodes, EPISODE_LIMIT);
@@ -136,7 +137,7 @@ function ShowDetail() {
         <div className="mt-14">
           <Shelf
             title="More stories to fall for"
-            items={shows.filter((s) => s.id !== show.id).slice(0, 6)}
+            items={allShows.filter((s) => s.id !== show.id).slice(0, 6)}
           />
         </div>
       </main>

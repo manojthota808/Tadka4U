@@ -42,6 +42,45 @@ describe("API Layer - Catalog API", () => {
     expect(featured.length).toBeGreaterThan(0);
     expect(featured.every((s) => Boolean(s.badge))).toBe(true);
   });
+
+  it("publishes and deletes a custom show dynamically", async () => {
+    const { show, error } = await catalogApi.publishShow({
+      title: "Test Admin Drama",
+      genre: "Sci-Fi",
+      image: "https://example.com/test-poster.jpg",
+      episodes: 6,
+      badge: "EXCLUSIVE",
+      description: "A test story published from admin.",
+      rating: "4.9",
+    });
+
+    expect(error).toBeNull();
+    expect(show).toBeDefined();
+    expect(show?.title).toBe("Test Admin Drama");
+    expect(show?.isCustom).toBe(true);
+
+    // Verify it is found in catalog queries
+    const found = catalogApi.getShowById(show!.id);
+    expect(found).toBeDefined();
+    expect(found?.genre).toBe("Sci-Fi");
+
+    // Verify genre is dynamically included
+    expect(catalogApi.getGenres()).toContain("Sci-Fi");
+
+    // Clean up
+    const { success, error: delError } = await catalogApi.deleteShow(show!.id);
+    expect(delError).toBeNull();
+    expect(success).toBe(true);
+    expect(catalogApi.getShowById(show!.id)).toBeUndefined();
+  });
+
+  it("prevents deleting original catalog seed shows", async () => {
+    const { success, error } = await catalogApi.deleteShow("midnight-promise");
+    expect(success).toBe(false);
+    expect(error?.message).toContain(
+      "Original catalog shows cannot be removed",
+    );
+  });
 });
 
 describe("API Layer - Watchlist API", () => {

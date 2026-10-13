@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageLayout, ShowCard, pageHead } from "@/frontend";
-import { shows, genres, filterShows } from "@/api";
+import { useShows, catalogApi, filterShows } from "@/api";
 export const Route = createFileRoute("/explore")({
   head: () =>
     pageHead(
@@ -15,7 +15,9 @@ export const Route = createFileRoute("/explore")({
 function Explore() {
   const [search, setSearch] = useState("");
   const [genre, setGenre] = useState("All");
-  const results = filterShows(shows, genre, search);
+  const allShows = useShows();
+  const availableGenres = catalogApi.getGenres();
+  const results = filterShows(allShows, genre, search);
   return (
     <PageLayout>
       <main className="inner-page">
@@ -32,7 +34,7 @@ function Explore() {
           onChange={(e) => setSearch(e.target.value)}
         />
         <div className="genre-bar">
-          {genres.map((g) => (
+          {availableGenres.map((g) => (
             <Button
               key={g}
               variant="ghost"

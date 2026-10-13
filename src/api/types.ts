@@ -8,9 +8,21 @@ export type Show = {
   genre: string;
   image: string;
   episodes: number;
-  badge?: string;
+  badge?: string | undefined;
   description: string;
   rating: string;
+  isCustom?: boolean | undefined;
+  createdAt?: string | undefined;
+};
+
+export type NewShowInput = {
+  title: string;
+  genre: string;
+  image: string;
+  episodes?: number | undefined;
+  badge?: string | undefined;
+  description: string;
+  rating?: string | undefined;
 };
 
 export type Genre =

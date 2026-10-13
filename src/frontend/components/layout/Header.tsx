@@ -52,6 +52,14 @@ export function Header() {
 
           <Show when="signed-in">
             <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="hidden sm:inline-flex text-xs text-muted-foreground hover:text-white border border-border/50"
+                asChild
+              >
+                <Link to="/admin">Studio</Link>
+              </Button>
               <UserButton />
             </div>
           </Show>

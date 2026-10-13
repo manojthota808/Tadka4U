@@ -6,11 +6,19 @@
  */
 
 export { supabase, lovable } from "./client";
-export { catalogApi, shows, genres, filterShows } from "./catalog";
+export {
+  catalogApi,
+  shows,
+  genres,
+  filterShows,
+  useShows,
+  useShow,
+} from "./catalog";
 export { watchlistApi } from "./watchlist";
 export { authApi } from "./auth";
 export type {
   Show,
+  NewShowInput,
   Genre,
   WatchlistItem,
   User,

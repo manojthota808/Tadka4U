@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { PageLayout, ShowCard, pageHead } from "@/frontend";
-import { shows } from "@/api";
+import { useShows } from "@/api";
 export const Route = createFileRoute("/originals")({
   head: () =>
     pageHead(
@@ -10,6 +10,7 @@ export const Route = createFileRoute("/originals")({
   component: Originals,
 });
 function Originals() {
+  const allShows = useShows();
   return (
     <PageLayout>
       <main className="inner-page">
@@ -19,7 +20,7 @@ function Originals() {
           Meet the stories that stay with you.
         </p>
         <div className="show-grid">
-          {shows.map((s) => (
+          {allShows.map((s) => (
             <ShowCard show={s} key={s.id} />
           ))}
         </div>

@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Bookmark } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageLayout, ShowCard, useAccount, pageHead } from "@/frontend";
-import { shows } from "@/api";
+import { useShows } from "@/api";
 export const Route = createFileRoute("/my-list")({
   head: () =>
     pageHead(
@@ -13,7 +13,8 @@ export const Route = createFileRoute("/my-list")({
 });
 function MyList() {
   const { user, saved } = useAccount();
-  const list = shows.filter((s) => saved.includes(s.id));
+  const allShows = useShows();
+  const list = allShows.filter((s) => saved.includes(s.id));
   return (
     <PageLayout>
       <main className="inner-page">

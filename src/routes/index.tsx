@@ -20,7 +20,7 @@ import {
   useAccount,
   pageHead,
 } from "@/frontend";
-import { shows, genres, filterShows } from "@/api";
+import { useShows, genres, filterShows } from "@/api";
 
 export const Route = createFileRoute("/")({
   head: () =>
@@ -37,6 +37,8 @@ function Index() {
   const [genre, setGenre] = useState("All");
   const [featured, setFeatured] = useState(0);
   const { saved, toggle } = useAccount();
+  const shows = useShows();
+  const customShows = shows.filter((s) => s.isCustom);
 
   const hero = shows.at(HERO_INDICES.at(featured) ?? 0);
   const topPicks = [5, 1, 7, 3, 6].flatMap((i) => (shows[i] ? [shows[i]] : []));
@@ -156,6 +158,17 @@ function Index() {
             </Button>
           </div>
           <ShelfCoordinator>
+            {customShows.length > 0 && (
+              <Shelf
+                id="shelf-new-releases"
+                title="Newly Published Releases"
+                subtitle="Fresh titles added to the Tadka4U streaming catalog."
+                icon={
+                  <Sparkles className="size-5 text-primary fill-primary/20" />
+                }
+                items={customShows}
+              />
+            )}
             <Shelf
               id="shelf-trending"
               title={genre === "All" ? "Trending now" : `${genre} picks`}

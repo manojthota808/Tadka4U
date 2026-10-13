@@ -13,9 +13,11 @@ export type Show = {
   genre: string;
   image: string;
   episodes: number;
-  badge?: string;
+  badge?: string | undefined;
   description: string;
   rating: string;
+  isCustom?: boolean | undefined;
+  createdAt?: string | undefined;
 };
 export const shows: Show[] = [
   {
