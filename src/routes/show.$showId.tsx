@@ -17,22 +17,41 @@ const EPISODE_LIMIT = 4;
 export const Route = createFileRoute("/show/$showId")({
   loader: ({ params }) => {
     const show = catalogApi.getShowById(params.showId);
-    if (!show) throw notFound();
-    return { show };
+    return { show: show ?? null, showId: params.showId };
   },
   head: ({ loaderData }) =>
     pageHead(
-      loaderData?.show.title ?? "Story",
-      loaderData?.show.description ?? "Discover a Tadka4U story.",
+      loaderData?.show?.title ?? "Story",
+      loaderData?.show?.description ?? "Discover a Tadka4U story.",
     ),
   component: ShowDetail,
 });
 
 function ShowDetail() {
-  const { show } = Route.useLoaderData();
+  const { show: initialShow, showId } = Route.useLoaderData();
   const allShows = useShows();
+  const dynamicShow = allShows.find((s) => s.id === showId);
+  const show = dynamicShow ?? initialShow;
   const { saved, toggle } = useAccount();
   const [episode, setEpisode] = useState<number | null>(null);
+
+  if (!show) {
+    return (
+      <PageLayout>
+        <main className="inner-page text-center py-20 max-w-md mx-auto">
+          <h1 className="text-2xl font-semibold mb-3">Story Not Found</h1>
+          <p className="text-sm text-muted-foreground mb-6">
+            The story you are looking for may have been removed or does not
+            exist.
+          </p>
+          <Button variant="cinema" asChild>
+            <Link to="/explore">Explore Stories</Link>
+          </Button>
+        </main>
+      </PageLayout>
+    );
+  }
+
   const episodeCount = Math.min(show.episodes, EPISODE_LIMIT);
 
   return (

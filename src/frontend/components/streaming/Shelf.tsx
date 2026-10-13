@@ -41,13 +41,17 @@ export function Shelf({
   const sectionRef = useRef<HTMLElement>(null);
   const [api, setApi] = useState<CarouselApi>();
 
+  const hasMultipleItems = (items?.length ?? 0) > 1;
+  const canLoop = (items?.length ?? 0) > 3;
+  const shouldAutoplay = autoplay && hasMultipleItems;
+
   const coordinator = useShelfCoordinator();
   const isActive = coordinator.isCoordinated
     ? coordinator.activeId === id
-    : autoplay;
+    : shouldAutoplay;
 
   const autoplayPlugin = useRef(
-    autoplay
+    shouldAutoplay
       ? Autoplay({
           delay,
           stopOnInteraction: false,
@@ -56,19 +60,26 @@ export function Shelf({
         })
       : undefined,
   );
-  const plugins = autoplayPlugin.current ? [autoplayPlugin.current] : undefined;
+  const plugins =
+    shouldAutoplay && autoplayPlugin.current
+      ? [autoplayPlugin.current]
+      : undefined;
 
   useEffect(() => {
     if (!coordinator.isCoordinated || !api) return;
-    const ap = api.plugins()?.autoplay;
-    if (!ap) return;
+    try {
+      const ap = api.plugins()?.autoplay;
+      if (!ap) return;
 
-    if (isActive) {
-      ap.play();
-    } else {
-      ap.stop();
+      if (isActive && shouldAutoplay) {
+        ap.play();
+      } else {
+        ap.stop();
+      }
+    } catch {
+      // Safe guard against unmounted or disposed embla plugins
     }
-  }, [isActive, api, coordinator.isCoordinated]);
+  }, [isActive, api, coordinator.isCoordinated, shouldAutoplay]);
 
   useEffect(() => {
     if (!coordinator.isCoordinated || !sectionRef.current) return;
@@ -77,7 +88,9 @@ export function Shelf({
       element: sectionRef.current,
       play: () => {
         try {
-          api?.plugins()?.autoplay?.play();
+          if (shouldAutoplay) {
+            api?.plugins()?.autoplay?.play();
+          }
         } catch (_err) {
           // Ignore carousel autoplay errors when unmounted
         }
@@ -90,7 +103,9 @@ export function Shelf({
         }
       },
     });
-  }, [id, api, coordinator]);
+  }, [id, api, coordinator, shouldAutoplay]);
+
+  if (!items || items.length === 0) return null;
 
   return (
     <section
@@ -127,7 +142,7 @@ export function Shelf({
       </div>
       <Carousel
         setApi={setApi}
-        opts={{ align: "start", loop: true, duration: 20 }}
+        opts={{ align: "start", loop: canLoop, duration: 20 }}
         plugins={plugins}
         className="shelf-carousel"
       >
@@ -152,14 +167,18 @@ export function Shelf({
             </CarouselItem>
           ))}
         </CarouselContent>
-        <CarouselPrevious
-          variant="glass"
-          className="left-0 border-border bg-card/90"
-        />
-        <CarouselNext
-          variant="glass"
-          className="right-0 border-border bg-card/90"
-        />
+        {hasMultipleItems && (
+          <>
+            <CarouselPrevious
+              variant="glass"
+              className="left-0 border-border bg-card/90"
+            />
+            <CarouselNext
+              variant="glass"
+              className="right-0 border-border bg-card/90"
+            />
+          </>
+        )}
       </Carousel>
     </section>
   );

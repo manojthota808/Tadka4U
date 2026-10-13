@@ -61,6 +61,62 @@ function isSupabaseConfigured(): boolean {
   }
 }
 
+const IDB_NAME = "tadka4u_catalog_db";
+const IDB_STORE = "custom_shows";
+
+function openIdb(): Promise<IDBDatabase | null> {
+  if (typeof window === "undefined" || !window.indexedDB) {
+    return Promise.resolve(null);
+  }
+  return new Promise((resolve) => {
+    try {
+      const request = indexedDB.open(IDB_NAME, 1);
+      request.onupgradeneeded = () => {
+        const db = request.result;
+        if (!db.objectStoreNames.contains(IDB_STORE)) {
+          db.createObjectStore(IDB_STORE, { keyPath: "id" });
+        }
+      };
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => resolve(null);
+    } catch {
+      resolve(null);
+    }
+  });
+}
+
+async function saveToIndexedDb(showsList: Show[]): Promise<void> {
+  const db = await openIdb();
+  if (!db) return;
+  try {
+    const tx = db.transaction(IDB_STORE, "readwrite");
+    const store = tx.objectStore(IDB_STORE);
+    store.clear();
+    for (const item of showsList) {
+      store.put(item);
+    }
+  } catch (e) {
+    console.warn("[Catalog] IndexedDB write notice:", e);
+  }
+}
+
+async function loadFromIndexedDb(): Promise<Show[]> {
+  const db = await openIdb();
+  if (!db) return [];
+  return new Promise((resolve) => {
+    try {
+      const tx = db.transaction(IDB_STORE, "readonly");
+      const store = tx.objectStore(IDB_STORE);
+      const req = store.getAll();
+      req.onsuccess = () =>
+        resolve(Array.isArray(req.result) ? (req.result as Show[]) : []);
+      req.onerror = () => resolve([]);
+    } catch {
+      resolve([]);
+    }
+  });
+}
+
 function getLocalCustomShows(): Show[] {
   if (typeof window === "undefined" || !window.localStorage) return [];
   try {
@@ -74,15 +130,22 @@ function getLocalCustomShows(): Show[] {
 }
 
 function setLocalCustomShows(customShows: Show[]): void {
-  if (typeof window === "undefined" || !window.localStorage) return;
-  try {
-    window.localStorage.setItem(CUSTOM_SHOWS_KEY, JSON.stringify(customShows));
-  } catch (err) {
-    console.warn(
-      "[Catalog] Failed to write custom shows to localStorage:",
-      err,
-    );
+  if (typeof window === "undefined") return;
+  if (window.localStorage) {
+    try {
+      window.localStorage.setItem(
+        CUSTOM_SHOWS_KEY,
+        JSON.stringify(customShows),
+      );
+    } catch (err) {
+      console.warn(
+        "[Catalog] LocalStorage write notice, writing to IndexedDB:",
+        err,
+      );
+    }
   }
+  // Always persist into IndexedDB as a resilient long-term backup
+  saveToIndexedDb(customShows).catch(() => {});
 }
 
 // In-memory catalog store
@@ -113,7 +176,7 @@ function updateCurrentShows(customList: Show[]) {
   notifyListeners();
 }
 
-// Client-side initial sync with Supabase if configured
+// Client-side initial sync with IndexedDB and Supabase if configured
 if (typeof window !== "undefined") {
   window.addEventListener("storage", (e) => {
     if (e.key === CUSTOM_SHOWS_KEY) {
@@ -121,6 +184,22 @@ if (typeof window !== "undefined") {
       updateCurrentShows(updated);
     }
   });
+
+  // Restore from IndexedDB if localStorage was cleared or missing
+  loadFromIndexedDb()
+    .then((idbShows) => {
+      if (idbShows && idbShows.length > 0) {
+        const local = getLocalCustomShows();
+        const localIds = new Set(local.map((s) => s.id));
+        const missing = idbShows.filter((s) => !localIds.has(s.id));
+        if (missing.length > 0) {
+          const merged = [...local, ...missing];
+          setLocalCustomShows(merged);
+          updateCurrentShows(merged);
+        }
+      }
+    })
+    .catch(() => {});
 
   if (isSupabaseConfigured()) {
     (async () => {

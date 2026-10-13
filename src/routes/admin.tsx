@@ -29,7 +29,7 @@ import {
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { PageLayout, pageHead } from "@/frontend";
+import { PageLayout, pageHead, compressImageFile } from "@/frontend";
 import { catalogApi, useShows, genres, type Show } from "@/api";
 import { toast } from "sonner";
 
@@ -154,24 +154,37 @@ function AdminPage() {
     setIsDragging(false);
   };
 
-  const processFile = (file: File) => {
+  const [isCompressing, setIsCompressing] = useState(false);
+
+  const processFile = async (file: File) => {
     if (!file.type.startsWith("image/")) {
       toast.error("Please upload an image file (PNG, JPG, WebP).");
       return;
     }
-    if (file.size > 10 * 1024 * 1024) {
-      toast.error("Image file size must be less than 10MB.");
+    if (file.size > 20 * 1024 * 1024) {
+      toast.error("Image file size must be less than 20MB.");
       return;
     }
 
     setSelectedFile(file);
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const result = e.target?.result as string;
-      setImagePreview(result);
-      setImageUrl(result);
-    };
-    reader.readAsDataURL(file);
+    setIsCompressing(true);
+    try {
+      // Compress and resize to web poster resolution (720x1080 @ 82% quality)
+      // This produces crisp ~40-60KB data URLs that fit easily in localStorage
+      const compressed = await compressImageFile(file, 720, 1080, 0.82);
+      setImagePreview(compressed);
+      setImageUrl(compressed);
+    } catch {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const result = e.target?.result as string;
+        setImagePreview(result);
+        setImageUrl(result);
+      };
+      reader.readAsDataURL(file);
+    } finally {
+      setIsCompressing(false);
+    }
   };
 
   const handleDrop = (e: DragEvent<HTMLDivElement>) => {
@@ -663,22 +676,32 @@ function AdminPage() {
                           className="hidden"
                           aria-label="Upload poster image"
                         />
-                        <div className="size-12 rounded-full bg-primary/10 border border-primary/20 text-primary flex items-center justify-center mx-auto mb-3">
-                          <Upload className="size-5" />
-                        </div>
-                        <p className="text-sm font-medium text-foreground">
-                          Drag and drop poster image here
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          or{" "}
-                          <span className="text-primary underline">
-                            browse from your computer
-                          </span>
-                        </p>
-                        <p className="text-[10px] text-muted-foreground/70 mt-2">
-                          Supports PNG, JPG, WebP · Portrait 2:3 ratio
-                          recommended
-                        </p>
+                        {isCompressing ? (
+                          <div className="py-4">
+                            <div className="size-8 rounded-full border-2 border-primary border-t-transparent animate-spin mx-auto mb-2" />
+                            <p className="text-xs text-primary font-medium">
+                              Optimizing artwork for web streaming…
+                            </p>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="size-12 rounded-full bg-primary/10 border border-primary/20 text-primary flex items-center justify-center mx-auto mb-3">
+                              <Upload className="size-5" />
+                            </div>
+                            <p className="text-sm font-medium text-foreground">
+                              Drag and drop poster image here
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              or{" "}
+                              <span className="text-primary underline">
+                                browse from your computer
+                              </span>
+                            </p>
+                            <p className="text-[10px] text-muted-foreground/70 mt-2">
+                              Supports PNG, JPG, WebP · Auto-optimized for web
+                            </p>
+                          </>
+                        )}
                       </div>
                     )}
                   </div>
