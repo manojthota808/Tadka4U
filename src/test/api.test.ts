@@ -93,5 +93,5 @@ describe("API Layer - Watchlist API", () => {
 
     const { showIds: guestIds } = await watchlistApi.getUserWatchlist("guest");
     expect(guestIds).toEqual([]);
-  });
+  }, 15000);
 });

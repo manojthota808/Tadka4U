@@ -65,19 +65,35 @@ function ShowDetail() {
             </div>
             {episode !== null && (
               <section className="preview-panel">
-                <h2 className="text-xl">
-                  Episode {episode} · {show.title}
-                </h2>
-                <img
-                  src={show.image}
-                  width={512}
-                  height={1024}
-                  alt={`${show.title} episode artwork`}
-                />
-                <p>
-                  This is an illustrative story preview. Full episodes for this
-                  demo have not been uploaded.
-                </p>
+                <div className="flex items-center justify-between mb-3">
+                  <h2 className="text-xl font-semibold flex items-center gap-2">
+                    <Play className="size-4 fill-primary text-primary" />
+                    Episode {episode} · {show.title}
+                  </h2>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setEpisode(null)}
+                    className="text-xs text-muted-foreground hover:text-white"
+                  >
+                    Close
+                  </Button>
+                </div>
+                <div className="preview-image-wrap relative overflow-hidden rounded-xl border border-white/10 shadow-2xl">
+                  <img
+                    src={show.image}
+                    width={512}
+                    height={1024}
+                    alt={`${show.title} episode ${episode} artwork`}
+                    className="w-full aspect-video object-cover [object-position:center_25%] block"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex items-end p-4">
+                    <p className="text-xs text-white/80">
+                      Illustrative story preview for Episode {episode}. Full
+                      playable episodes coming soon.
+                    </p>
+                  </div>
+                </div>
               </section>
             )}
           </div>
