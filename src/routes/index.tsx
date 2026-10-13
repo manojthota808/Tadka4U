@@ -166,7 +166,7 @@ function Index() {
             />
             <Shelf
               id="shelf-top-picks"
-              title="Top picks. Big obsessions."
+              title="Must-Watch"
               subtitle="The stories you won’t want to put down."
               icon={<Star className="size-5 text-amber-400 fill-amber-400" />}
               items={topPicks}
@@ -185,7 +185,7 @@ function Index() {
             />
             <Shelf
               id="shelf-romance"
-              title="Heartbeats & Romance"
+              title="Love Stories"
               subtitle="Passionate love stories and heartfelt connections."
               icon={<Heart className="size-5 text-rose-500 fill-rose-500/20" />}
               items={[0, 5, 7, 2, 8, 4].flatMap((i) =>
