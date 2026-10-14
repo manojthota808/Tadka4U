@@ -244,6 +244,19 @@ function Index() {
               />
             )}
 
+            {/* New Releases (Directly below Trending) */}
+            {freshShows.length > 0 && (
+              <Shelf
+                id="shelf-fresh"
+                title="New Releases"
+                subtitle="New episodes and latest additions."
+                icon={
+                  <Sparkles className="size-5 text-sky-400 fill-sky-400/20" />
+                }
+                items={freshShows}
+              />
+            )}
+
             {/* Top Rated Picks */}
             {topPicks.length > 0 && (
               <Shelf
@@ -316,19 +329,6 @@ function Index() {
                 subtitle="Chilling mysteries and haunted ancestral tales."
                 icon={<Zap className="size-5 text-red-500 fill-red-500/20" />}
                 items={horrorShows}
-              />
-            )}
-
-            {/* New Releases */}
-            {freshShows.length > 0 && (
-              <Shelf
-                id="shelf-fresh"
-                title="New Releases"
-                subtitle="New episodes and latest additions."
-                icon={
-                  <Sparkles className="size-5 text-sky-400 fill-sky-400/20" />
-                }
-                items={freshShows}
               />
             )}
           </ShelfCoordinator>
