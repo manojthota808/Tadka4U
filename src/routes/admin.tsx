@@ -1,6 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   useState,
+  useEffect,
+  useCallback,
   useRef,
   useId,
   type DragEvent,
@@ -26,6 +28,7 @@ import {
   Star,
   CheckCircle2,
   AlertCircle,
+  RefreshCw,
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -122,6 +125,39 @@ function AdminPage() {
   const [catalogSearch, setCatalogSearch] = useState("");
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [copiedSql, setCopiedSql] = useState(false);
+
+  // Cloud Database Status
+  const [cloudStatus, setCloudStatus] = useState<{
+    configured: boolean;
+    tableReady: boolean;
+    error?: string;
+    checked: boolean;
+    isTesting?: boolean;
+  }>({
+    configured: false,
+    tableReady: false,
+    checked: false,
+    isTesting: false,
+  });
+
+  const checkDb = useCallback(async () => {
+    setCloudStatus((prev) => ({ ...prev, isTesting: true }));
+    try {
+      const res = await catalogApi.checkCloudStatus();
+      setCloudStatus({ ...res, checked: true, isTesting: false });
+    } catch {
+      setCloudStatus({
+        configured: false,
+        tableReady: false,
+        checked: true,
+        isTesting: false,
+      });
+    }
+  }, []);
+
+  useEffect(() => {
+    checkDb();
+  }, [checkDb]);
 
   // 1. Authorization Check
   // Check against VITE_ADMIN_EMAILS (comma separated), or allow signed-in user if unset
@@ -234,7 +270,7 @@ function AdminPage() {
 
     setIsSubmitting(true);
     try {
-      const { show, error } = await catalogApi.publishShow(
+      const { show, error, remoteSaved } = await catalogApi.publishShow(
         {
           title,
           genre: finalGenre,
@@ -253,9 +289,17 @@ function AdminPage() {
         return;
       }
 
-      toast.success(`"${show.title}" published successfully!`, {
-        description: "It is now live immediately on Home and Explore.",
-      });
+      if (remoteSaved) {
+        toast.success(`"${show.title}" published to cloud!`, {
+          description:
+            "Synced with Supabase. Live for all end users on https://tadka4u.vercel.app.",
+        });
+      } else {
+        toast.success(`"${show.title}" published locally!`, {
+          description:
+            "Saved on your device. Run the SQL in the Database tab so all end users see it.",
+        });
+      }
 
       setLastPublishedId(show.id);
 
@@ -559,6 +603,47 @@ function AdminPage() {
         {/* ================= TAB 1: PUBLISH NEW SHOW ================= */}
         {activeTab === "publish" && (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            {cloudStatus.checked && !cloudStatus.tableReady && (
+              <div className="lg:col-span-12 bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 flex items-start gap-3 text-xs text-amber-200">
+                <AlertCircle className="size-5 text-amber-400 flex-shrink-0 mt-0.5" />
+                <div className="flex-1 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-amber-300">
+                      Supabase Cloud Sync Pending
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab("database")}
+                      className="text-[11px] font-semibold text-amber-300 underline hover:text-amber-100"
+                    >
+                      View 1-Click SQL Setup →
+                    </button>
+                  </div>
+                  <p className="text-amber-200/80 leading-relaxed">
+                    The <code>public.shows</code> table is not created in your
+                    Supabase database yet. Any show you publish will be saved to
+                    this device/browser. To make published shows instantly
+                    visible to{" "}
+                    <strong>
+                      all end users globally on https://tadka4u.vercel.app
+                    </strong>
+                    , open the <strong>Database Setup</strong> tab and run the
+                    SQL script in your Supabase SQL editor.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {cloudStatus.checked && cloudStatus.tableReady && (
+              <div className="lg:col-span-12 bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-3 flex items-center gap-2.5 text-xs text-emerald-300">
+                <CheckCircle2 className="size-4 text-emerald-400 flex-shrink-0" />
+                <span>
+                  <strong>Cloud Sync Connected:</strong> Published shows will
+                  sync directly to Supabase and appear immediately for all end
+                  users on <code>https://tadka4u.vercel.app</code>.
+                </span>
+              </div>
+            )}
             {/* Form Column */}
             <form
               onSubmit={handleSubmit}
@@ -1152,6 +1237,44 @@ function AdminPage() {
                       Copy SQL
                     </>
                   )}
+                </Button>
+              </div>
+
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl border border-border/70 bg-secondary/30">
+                <div className="flex items-center gap-3">
+                  <div
+                    className={`size-3 rounded-full flex-shrink-0 ${
+                      cloudStatus.tableReady
+                        ? "bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.7)]"
+                        : "bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]"
+                    }`}
+                  />
+                  <div>
+                    <p className="text-xs font-semibold text-foreground">
+                      {cloudStatus.tableReady
+                        ? "Supabase Shows Table is Active"
+                        : "Table 'public.shows' Pending Creation"}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">
+                      {cloudStatus.tableReady
+                        ? "Any show published will be immediately visible to all end users on https://tadka4u.vercel.app."
+                        : "Shows are saved to local storage. Run the SQL below in Supabase SQL editor to enable global sync."}
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={checkDb}
+                  disabled={cloudStatus.isTesting}
+                  className="text-xs h-8 flex-shrink-0 gap-1.5 self-end sm:self-auto"
+                >
+                  <RefreshCw
+                    className={`size-3 ${
+                      cloudStatus.isTesting ? "animate-spin" : ""
+                    }`}
+                  />
+                  {cloudStatus.isTesting ? "Checking…" : "Test Status"}
                 </Button>
               </div>
 

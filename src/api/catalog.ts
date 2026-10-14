@@ -176,6 +176,41 @@ function updateCurrentShows(customList: Show[]) {
   notifyListeners();
 }
 
+async function syncRemoteShows(): Promise<void> {
+  if (!isSupabaseConfigured()) return;
+  try {
+    const { data, error } = await dynamicDb.from("shows").select("*");
+    if (error || !Array.isArray(data)) return;
+
+    const remoteShows: Show[] = data.map((item) => {
+      const row = item as Record<string, unknown>;
+      return {
+        id: String(row["id"]),
+        title: String(row["title"]),
+        genre: String(row["genre"]),
+        image: String(row["image"]),
+        episodes: Number(row["episodes"]) || 4,
+        badge: row["badge"] ? String(row["badge"]) : undefined,
+        description: String(row["description"] || ""),
+        rating: String(row["rating"] || "4.8"),
+        isCustom: true,
+        createdAt: row["created_at"] ? String(row["created_at"]) : undefined,
+      };
+    });
+
+    const local = getLocalCustomShows();
+    const remoteIds = new Set(remoteShows.map((s) => s.id));
+    const merged = [
+      ...remoteShows,
+      ...local.filter((l) => !remoteIds.has(l.id)),
+    ];
+    setLocalCustomShows(merged);
+    updateCurrentShows(merged);
+  } catch (err) {
+    console.warn("[Catalog] Supabase sync notice:", err);
+  }
+}
+
 // Client-side initial sync with IndexedDB and Supabase if configured
 if (typeof window !== "undefined") {
   window.addEventListener("storage", (e) => {
@@ -183,6 +218,10 @@ if (typeof window !== "undefined") {
       const updated = getLocalCustomShows();
       updateCurrentShows(updated);
     }
+  });
+
+  window.addEventListener("focus", () => {
+    syncRemoteShows();
   });
 
   // Restore from IndexedDB if localStorage was cleared or missing
@@ -201,43 +240,7 @@ if (typeof window !== "undefined") {
     })
     .catch(() => {});
 
-  if (isSupabaseConfigured()) {
-    (async () => {
-      try {
-        const { data, error } = await dynamicDb.from("shows").select("*");
-        if (!error && Array.isArray(data) && data.length > 0) {
-          const remoteShows: Show[] = data.map((item) => {
-            const row = item as Record<string, unknown>;
-            return {
-              id: String(row["id"]),
-              title: String(row["title"]),
-              genre: String(row["genre"]),
-              image: String(row["image"]),
-              episodes: Number(row["episodes"]) || 4,
-              badge: row["badge"] ? String(row["badge"]) : undefined,
-              description: String(row["description"] || ""),
-              rating: String(row["rating"] || "4.8"),
-              isCustom: true,
-              createdAt: row["created_at"]
-                ? String(row["created_at"])
-                : undefined,
-            };
-          });
-
-          const local = getLocalCustomShows();
-          const remoteIds = new Set(remoteShows.map((s) => s.id));
-          const merged = [
-            ...remoteShows,
-            ...local.filter((l) => !remoteIds.has(l.id)),
-          ];
-          setLocalCustomShows(merged);
-          updateCurrentShows(merged);
-        }
-      } catch (err) {
-        console.warn("[Catalog] Supabase initial sync notice:", err);
-      }
-    })();
-  }
+  syncRemoteShows();
 }
 
 export const catalogApi = {
@@ -307,7 +310,12 @@ export const catalogApi = {
   publishShow: async (
     input: NewShowInput,
     file?: File | null,
-  ): Promise<{ show: Show | null; error: Error | null }> => {
+  ): Promise<{
+    show: Show | null;
+    error: Error | null;
+    remoteSaved?: boolean | undefined;
+    remoteError?: string | undefined;
+  }> => {
     try {
       if (!input.title?.trim()) {
         return { show: null, error: new Error("Show title is required.") };
@@ -373,6 +381,9 @@ export const catalogApi = {
         createdAt: new Date().toISOString(),
       };
 
+      let remoteSaved = false;
+      let remoteError: string | undefined;
+
       // Try inserting into Supabase shows table
       if (isSupabaseConfigured()) {
         try {
@@ -389,13 +400,18 @@ export const catalogApi = {
           });
           if (dbError) {
             console.warn("[Catalog] Remote insert notice:", dbError.message);
+            remoteError = dbError.message;
+          } else {
+            remoteSaved = true;
           }
         } catch (dbErr) {
           console.warn("[Catalog] Remote insert error:", dbErr);
+          remoteError =
+            dbErr instanceof Error ? dbErr.message : "Remote save failed";
         }
       }
 
-      // Persist in localStorage
+      // Persist in localStorage and IndexedDB
       const existingCustom = getLocalCustomShows();
       const updatedCustom = [
         newShow,
@@ -404,11 +420,46 @@ export const catalogApi = {
       setLocalCustomShows(updatedCustom);
       updateCurrentShows(updatedCustom);
 
-      return { show: newShow, error: null };
+      return { show: newShow, error: null, remoteSaved, remoteError };
     } catch (err) {
       const error =
         err instanceof Error ? err : new Error("Failed to publish show.");
-      return { show: null, error };
+      return { show: null, error, remoteSaved: false };
+    }
+  },
+
+  /**
+   * Manually triggers a remote catalog sync with Supabase cloud.
+   */
+  syncRemote: syncRemoteShows,
+
+  /**
+   * Validates Supabase cloud database readiness and whether the shows table exists.
+   */
+  checkCloudStatus: async (): Promise<{
+    configured: boolean;
+    tableReady: boolean;
+    error?: string;
+  }> => {
+    if (!isSupabaseConfigured()) {
+      return {
+        configured: false,
+        tableReady: false,
+        error: "Supabase environment keys are missing.",
+      };
+    }
+    try {
+      const { error } = await dynamicDb.from("shows").select("id");
+      if (error) {
+        return { configured: true, tableReady: false, error: error.message };
+      }
+      return { configured: true, tableReady: true };
+    } catch (e) {
+      return {
+        configured: true,
+        tableReady: false,
+        error: e instanceof Error ? e.message : "Failed to query shows table",
+      };
     }
   },
 
