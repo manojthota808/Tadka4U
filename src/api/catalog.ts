@@ -195,6 +195,7 @@ async function syncRemoteShows(): Promise<void> {
         rating: String(row["rating"] || "4.8"),
         isCustom: true,
         isHero: Boolean(row["is_hero"]),
+        videoUrl: row["video_url"] ? String(row["video_url"]) : undefined,
         createdAt: row["created_at"] ? String(row["created_at"]) : undefined,
       };
     });
@@ -380,6 +381,7 @@ export const catalogApi = {
         rating: input.rating?.trim() || "4.8",
         isCustom: true,
         isHero: Boolean(input.isHero),
+        videoUrl: input.videoUrl?.trim() ? input.videoUrl.trim() : undefined,
         createdAt: new Date().toISOString(),
       };
 
@@ -389,7 +391,7 @@ export const catalogApi = {
       // Try inserting into Supabase shows table
       if (isSupabaseConfigured()) {
         try {
-          const { error: dbError } = await dynamicDb.from("shows").insert({
+          const insertPayload: Record<string, unknown> = {
             id: newShow.id,
             title: newShow.title,
             genre: newShow.genre,
@@ -400,28 +402,33 @@ export const catalogApi = {
             rating: newShow.rating,
             is_custom: true,
             is_hero: Boolean(newShow.isHero),
-          });
+            video_url: newShow.videoUrl ?? null,
+          };
+
+          const { error: dbError } = await dynamicDb
+            .from("shows")
+            .insert(insertPayload);
           if (dbError) {
-            if (dbError.message.includes("is_hero")) {
-              const { error: retryErr } = await dynamicDb.from("shows").insert({
-                id: newShow.id,
-                title: newShow.title,
-                genre: newShow.genre,
-                image: newShow.image,
-                episodes: newShow.episodes,
-                badge: newShow.badge ?? null,
-                description: newShow.description,
-                rating: newShow.rating,
-                is_custom: true,
-              });
-              if (!retryErr) {
-                remoteSaved = true;
-              } else {
-                remoteError = retryErr.message;
-              }
+            // If video_url or is_hero column doesn't exist yet, retry with basic fields
+            const fallbackPayload: Record<string, unknown> = {
+              id: newShow.id,
+              title: newShow.title,
+              genre: newShow.genre,
+              image: newShow.image,
+              episodes: newShow.episodes,
+              badge: newShow.badge ?? null,
+              description: newShow.description,
+              rating: newShow.rating,
+              is_custom: true,
+            };
+            const { error: retryErr } = await dynamicDb
+              .from("shows")
+              .insert(fallbackPayload);
+            if (!retryErr) {
+              remoteSaved = true;
             } else {
-              console.warn("[Catalog] Remote insert notice:", dbError.message);
-              remoteError = dbError.message;
+              console.warn("[Catalog] Remote insert notice:", retryErr.message);
+              remoteError = retryErr.message;
             }
           } else {
             remoteSaved = true;

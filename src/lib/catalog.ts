@@ -18,6 +18,7 @@ export type Show = {
   rating: string;
   isCustom?: boolean | undefined;
   isHero?: boolean | undefined;
+  videoUrl?: string | undefined;
   createdAt?: string | undefined;
 };
 export const shows: Show[] = [

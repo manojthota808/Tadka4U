@@ -13,6 +13,7 @@ export type Show = {
   rating: string;
   isCustom?: boolean | undefined;
   isHero?: boolean | undefined;
+  videoUrl?: string | undefined;
   createdAt?: string | undefined;
 };
 
@@ -25,6 +26,7 @@ export type NewShowInput = {
   description: string;
   rating?: string | undefined;
   isHero?: boolean | undefined;
+  videoUrl?: string | undefined;
 };
 
 export type Genre =

@@ -35,10 +35,19 @@ import {
   Heart,
   Zap,
   Flame,
+  Cloud,
+  Play,
+  Tv,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageLayout, pageHead, compressImageFile } from "@/frontend";
 import { catalogApi, useShows, genres, type Show } from "@/api";
+import {
+  GCS_CORS_JSON,
+  GCS_SET_CORS_CMD,
+  GOOGLE_CLOUD_DEFAULT_STREAMS,
+  isGoogleCloudStorageUrl,
+} from "@/lib/video-streaming";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin")({
@@ -160,11 +169,13 @@ create table if not exists public.shows (
   rating text default '4.8',
   is_custom boolean default true,
   is_hero boolean default false,
+  video_url text,
   created_at timestamp with time zone default timezone('utc'::text, now())
 );
 
--- 2. Add is_hero column if table already existed without it
+-- 2. Add columns if table already existed without them
 alter table public.shows add column if not exists is_hero boolean default false;
+alter table public.shows add column if not exists video_url text;
 
 -- 3. Enable Row Level Security
 alter table public.shows enable row level security;
@@ -214,6 +225,9 @@ function AdminPage() {
   const [isDragging, setIsDragging] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isHero, setIsHero] = useState(false);
+  const [videoUrl, setVideoUrl] = useState("");
+  const [videoPreset, setVideoPreset] = useState<string>("default");
+  const [isVideoTesting, setIsVideoTesting] = useState(false);
   const [lastPublishedId, setLastPublishedId] = useState<string | null>(null);
 
   const effectiveGenre = isCustomGenre ? customGenre : genre;
@@ -227,6 +241,7 @@ function AdminPage() {
   );
   const [selectedShelfFilter, setSelectedShelfFilter] = useState<string>("all");
   const [copiedSql, setCopiedSql] = useState(false);
+  const [copiedGcsCors, setCopiedGcsCors] = useState(false);
 
   // Cloud Database Status
   const [cloudStatus, setCloudStatus] = useState<{
@@ -383,6 +398,7 @@ function AdminPage() {
             description.trim() || "A captivating short drama on Tadka4U.",
           rating: rating.trim() || "4.8",
           isHero,
+          videoUrl: videoUrl.trim() || undefined,
         },
         selectedFile,
       );
@@ -412,6 +428,7 @@ function AdminPage() {
       setTitle("");
       setDescription("");
       clearImage();
+      setVideoUrl("");
       setEpisodes("4");
       setRating("4.8");
       setBadge("NEW");
@@ -637,6 +654,12 @@ function AdminPage() {
             {(s.isCustom || s.badge?.toLowerCase().includes("new")) && (
               <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-400 border border-sky-500/25">
                 New Releases
+              </span>
+            )}
+            {s.videoUrl && (
+              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 flex items-center gap-1">
+                <Cloud className="size-2.5 text-emerald-400" />
+                Google Cloud Video
               </span>
             )}
             <span>·</span>
@@ -1387,6 +1410,111 @@ function AdminPage() {
                 />
               </div>
 
+              {/* Google Cloud Video Stream Source */}
+              <div className="space-y-3 p-4 rounded-xl bg-secondary/30 border border-border/70">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <div className="flex items-center gap-2">
+                    <Cloud className="size-4 text-emerald-400" />
+                    <label className="text-xs font-semibold text-foreground">
+                      Video Stream Source (Google Cloud Storage)
+                    </label>
+                  </div>
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+                    <Cloud className="size-2.5" />
+                    GCS & CDN Fast Streaming
+                  </span>
+                </div>
+
+                <p className="text-[11px] text-muted-foreground leading-relaxed m-0">
+                  Store videos on Google Cloud Storage (e.g.{" "}
+                  <code className="text-primary font-mono text-[10px]">
+                    storage.googleapis.com
+                  </code>
+                  ) or use fast cloud streaming presets for instant, smooth
+                  playback.
+                </p>
+
+                {/* Preset vs Custom URL Toggle */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setVideoPreset("default");
+                      setVideoUrl("");
+                    }}
+                    className={`p-2.5 rounded-xl border text-left transition-all ${
+                      videoPreset === "default"
+                        ? "bg-primary/10 border-primary text-white shadow-sm"
+                        : "bg-secondary/40 border-border text-muted-foreground hover:text-white"
+                    }`}
+                  >
+                    <div className="flex items-center gap-1.5 text-xs font-semibold">
+                      <Sparkles className="size-3 text-primary" />
+                      Google Cloud CDN Preset (Auto)
+                    </div>
+                    <div className="text-[10px] text-muted-foreground mt-0.5">
+                      Fast 1080p stream with moov-atom front buffer & HTTP 206
+                      range scrubbing.
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setVideoPreset("custom")}
+                    className={`p-2.5 rounded-xl border text-left transition-all ${
+                      videoPreset === "custom"
+                        ? "bg-primary/10 border-primary text-white shadow-sm"
+                        : "bg-secondary/40 border-border text-muted-foreground hover:text-white"
+                    }`}
+                  >
+                    <div className="flex items-center gap-1.5 text-xs font-semibold">
+                      <Cloud className="size-3 text-emerald-400" />
+                      Custom GCS Bucket URL
+                    </div>
+                    <div className="text-[10px] text-muted-foreground mt-0.5">
+                      Enter your own Google Cloud Storage object URL.
+                    </div>
+                  </button>
+                </div>
+
+                {/* Custom GCS URL Input */}
+                {videoPreset === "custom" && (
+                  <div className="space-y-1.5 pt-1">
+                    <div className="flex items-center justify-between text-[11px] font-semibold text-foreground">
+                      <span>Google Cloud Storage URL (.mp4)</span>
+                      {videoUrl && isGoogleCloudStorageUrl(videoUrl) && (
+                        <span className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1">
+                          <Check className="size-3" />
+                          Google Cloud URL Detected
+                        </span>
+                      )}
+                    </div>
+                    <input
+                      type="url"
+                      placeholder="https://storage.googleapis.com/my-tadka4u-videos/episode1.mp4"
+                      value={videoUrl}
+                      onChange={(e) => setVideoUrl(e.target.value)}
+                      className="w-full bg-secondary/50 border border-border rounded-xl px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary font-mono transition-colors"
+                    />
+                    <p className="text-[10px] text-muted-foreground leading-relaxed m-0">
+                      Supports:{" "}
+                      <code className="text-primary font-mono">
+                        https://storage.googleapis.com/...
+                      </code>{" "}
+                      or any HTTPS MP4 stream. Use{" "}
+                      <code className="text-primary font-mono">
+                        &#123;ep&#125;
+                      </code>{" "}
+                      (e.g.{" "}
+                      <code className="text-primary font-mono">
+                        episode-&#123;ep&#125;.mp4
+                      </code>
+                      ) for dynamic episode numbering!
+                    </p>
+                  </div>
+                )}
+              </div>
+
               {/* Feature in Top Hero Carousel Option */}
               <div
                 onClick={() => setIsHero(!isHero)}
@@ -1999,6 +2127,128 @@ function AdminPage() {
                   and in-memory state. Your newly published shows work
                   immediately on the homepage and explore screens right away.
                 </p>
+              </div>
+            </div>
+
+            {/* Google Cloud Storage Setup Card */}
+            <div className="bg-card border border-border/70 rounded-2xl p-6 sm:p-7 shadow-xl space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-border/50">
+                <div className="flex items-center gap-2.5">
+                  <div className="size-8 rounded-lg bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                    <Cloud className="size-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-semibold text-foreground">
+                      Google Cloud Storage (GCS) Video Setup
+                    </h3>
+                    <p className="text-xs text-muted-foreground">
+                      Store your short drama episodes on Google Cloud for
+                      lightning-fast streaming delivery.
+                    </p>
+                  </div>
+                </div>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    navigator.clipboard.writeText(GCS_CORS_JSON);
+                    setCopiedGcsCors(true);
+                    toast.success("Google Cloud CORS configuration copied!");
+                    setTimeout(() => setCopiedGcsCors(false), 2500);
+                  }}
+                  className="gap-1.5 text-xs"
+                >
+                  {copiedGcsCors ? (
+                    <>
+                      <Check className="size-3.5 text-emerald-400" />
+                      Copied CORS!
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="size-3.5" />
+                      Copy CORS Config
+                    </>
+                  )}
+                </Button>
+              </div>
+
+              <div className="space-y-3 text-xs text-muted-foreground leading-relaxed">
+                <div className="p-3.5 rounded-xl bg-secondary/30 border border-border/60 space-y-2">
+                  <div className="font-semibold text-foreground flex items-center gap-2">
+                    <span className="size-5 rounded-full bg-primary/20 text-primary text-[11px] font-bold flex items-center justify-center">
+                      1
+                    </span>
+                    Create a Google Cloud Storage Bucket
+                  </div>
+                  <p className="text-[11px] pl-7">
+                    Go to{" "}
+                    <strong>
+                      Google Cloud Console &rarr; Cloud Storage &rarr; Buckets
+                    </strong>{" "}
+                    and create a bucket (e.g.{" "}
+                    <code className="text-primary font-mono">
+                      gs://tadka4u-videos
+                    </code>
+                    ).
+                  </p>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-secondary/30 border border-border/60 space-y-2">
+                  <div className="font-semibold text-foreground flex items-center gap-2">
+                    <span className="size-5 rounded-full bg-primary/20 text-primary text-[11px] font-bold flex items-center justify-center">
+                      2
+                    </span>
+                    Allow Public Video Streaming
+                  </div>
+                  <p className="text-[11px] pl-7">
+                    In the bucket Permissions tab, click{" "}
+                    <strong>Grant Access</strong> &rarr; Add Principal:{" "}
+                    <code className="text-primary font-mono">allUsers</code>{" "}
+                    &rarr; Role:{" "}
+                    <strong className="text-white">
+                      Storage Object Viewer
+                    </strong>
+                    .
+                  </p>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-secondary/30 border border-border/60 space-y-2">
+                  <div className="font-semibold text-foreground flex items-center gap-2">
+                    <span className="size-5 rounded-full bg-primary/20 text-primary text-[11px] font-bold flex items-center justify-center">
+                      3
+                    </span>
+                    Enable CORS for Smooth Timeline Scrubbing
+                  </div>
+                  <p className="text-[11px] pl-7 mb-2">
+                    Save the JSON below as{" "}
+                    <code className="text-white font-mono">cors.json</code> and
+                    apply it via the Google Cloud CLI:
+                  </p>
+                  <div className="p-2.5 rounded-lg bg-black/60 border border-white/10 font-mono text-[11px] text-emerald-400 select-all">
+                    {GCS_SET_CORS_CMD}
+                  </div>
+                  <div className="p-3 rounded-lg bg-black/50 border border-white/10 font-mono text-[10px] text-muted-foreground overflow-x-auto">
+                    <pre>{GCS_CORS_JSON}</pre>
+                  </div>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-secondary/30 border border-border/60 space-y-2">
+                  <div className="font-semibold text-foreground flex items-center gap-2">
+                    <span className="size-5 rounded-full bg-primary/20 text-primary text-[11px] font-bold flex items-center justify-center">
+                      4
+                    </span>
+                    Publish With Your Video URL
+                  </div>
+                  <p className="text-[11px] pl-7">
+                    Copy the public URL (e.g.{" "}
+                    <code className="text-primary font-mono">
+                      https://storage.googleapis.com/YOUR_BUCKET/episode1.mp4
+                    </code>
+                    ) and paste it into the <strong>Video Stream Source</strong>{" "}
+                    field in the Publish tab.
+                  </p>
+                </div>
               </div>
             </div>
           </div>

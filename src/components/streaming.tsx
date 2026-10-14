@@ -17,4 +17,5 @@ export {
   Footer,
   PageLayout,
   pageHead,
+  VideoPlayer,
 } from "@/frontend";
