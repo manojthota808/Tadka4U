@@ -19,6 +19,7 @@ export type Show = {
   isCustom?: boolean | undefined;
   isHero?: boolean | undefined;
   videoUrl?: string | undefined;
+  episodeVideos?: Record<number, string> | undefined;
   createdAt?: string | undefined;
 };
 export const shows: Show[] = [

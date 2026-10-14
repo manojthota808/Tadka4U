@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useRef, useEffect } from "react";
-import { Plus, Check, Play, Star, Cloud } from "lucide-react";
+import { Plus, Check, Play, Star, Cloud, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   PageLayout,
@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/carousel";
 import { catalogApi, useShows } from "@/api";
 
-const EPISODE_LIMIT = 4;
+const EPISODE_LIMIT = 8;
 
 export const Route = createFileRoute("/show/$showId")({
   loader: ({ params }) => {
@@ -45,7 +45,7 @@ function ShowDetail() {
 
   useEffect(() => {
     if (episode !== null && playerRef.current) {
-      playerRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+      playerRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   }, [episode]);
 
@@ -71,6 +71,95 @@ function ShowDetail() {
   return (
     <PageLayout>
       <main className="inner-page">
+        {/* Netflix-Style Cinema Theater Stage */}
+        {episode !== null && (
+          <section
+            ref={playerRef}
+            className="netflix-theater-stage scroll-mt-24 mb-10"
+            aria-label={`Streaming Episode ${episode} of ${show.title}`}
+          >
+            {/* Cinema Header */}
+            <div className="theater-header">
+              <div className="flex items-center gap-3">
+                <span className="size-2.5 rounded-full bg-primary animate-pulse" />
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-[10px] font-bold tracking-widest text-primary uppercase px-2 py-0.5 rounded-full bg-primary/15 border border-primary/20">
+                    Now Watching
+                  </span>
+                  <h2 className="text-sm sm:text-base font-bold text-white tracking-tight m-0">
+                    Episode {episode} · {show.title}
+                  </h2>
+                </div>
+                <span className="hidden md:inline-flex items-center gap-1 text-[11px] font-medium text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
+                  <Cloud size={11} />
+                  Google Cloud 1080p
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                {/* Episode Switcher Quick Pills */}
+                <div className="hidden sm:flex items-center gap-1.5 mr-1">
+                  {Array.from({ length: episodeCount }, (_, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => setEpisode(i + 1)}
+                      className={`theater-episode-pill ${episode === i + 1 ? "active" : ""}`}
+                      aria-label={`Switch to Episode ${i + 1}`}
+                    >
+                      <Play className="size-3 fill-current" />
+                      Ep {i + 1}
+                    </button>
+                  ))}
+                </div>
+
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setEpisode(null)}
+                  className="h-8 px-3 text-xs font-semibold text-white/80 hover:text-white hover:bg-white/10 rounded-full border border-white/10 gap-1.5 transition-all"
+                >
+                  <X className="size-3.5" />
+                  <span>Close Cinema</span>
+                </Button>
+              </div>
+            </div>
+
+            {/* Video Player Display */}
+            <div className="theater-player-box">
+              <VideoPlayer
+                show={show}
+                episodeNumber={episode}
+                totalEpisodes={episodeCount}
+                onSelectEpisode={(ep) => setEpisode(ep)}
+                onClose={() => setEpisode(null)}
+              />
+            </div>
+
+            {/* Episode Selector Strip */}
+            <div className="theater-episodes-strip">
+              <span className="text-[11px] font-semibold text-white/50 uppercase tracking-wider pl-1">
+                Episodes:
+              </span>
+              {Array.from({ length: episodeCount }, (_, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => setEpisode(i + 1)}
+                  className={`theater-episode-pill ${episode === i + 1 ? "active" : ""}`}
+                >
+                  <span className="font-bold">Episode {i + 1}</span>
+                  {episode === i + 1 && (
+                    <span className="text-[10px] uppercase font-bold text-white bg-black/40 px-1.5 py-0.5 rounded">
+                      Playing
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
+
         <div className="detail-layout">
           <Poster show={show} />
           <div className="detail-info">
@@ -92,40 +181,22 @@ function ShowDetail() {
             </div>
             <p>{show.description}</p>
             <div className="hero-buttons">
-              <Button variant="cinema" onClick={() => setEpisode(1)}>
+              <Button
+                variant="cinema"
+                onClick={() => {
+                  setEpisode(episode || 1);
+                }}
+              >
                 <Play fill="currentColor" />
-                Watch preview
+                {episode !== null
+                  ? `Resume Episode ${episode}`
+                  : "Watch preview"}
               </Button>
               <Button variant="glass" onClick={() => toggle(show.id)}>
                 {saved.includes(show.id) ? <Check /> : <Plus />}
                 My List
               </Button>
             </div>
-            {episode !== null && (
-              <section ref={playerRef} className="preview-panel mt-6">
-                <div className="flex items-center justify-between mb-3">
-                  <h2 className="text-xl font-semibold flex items-center gap-2">
-                    <Play className="size-4 fill-primary text-primary" />
-                    Episode {episode} · {show.title}
-                  </h2>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setEpisode(null)}
-                    className="text-xs text-muted-foreground hover:text-white"
-                  >
-                    Close
-                  </Button>
-                </div>
-                <VideoPlayer
-                  show={show}
-                  episodeNumber={episode}
-                  totalEpisodes={episodeCount}
-                  onSelectEpisode={(ep) => setEpisode(ep)}
-                  onClose={() => setEpisode(null)}
-                />
-              </section>
-            )}
           </div>
         </div>
         <section className="episode-shelf">

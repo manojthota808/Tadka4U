@@ -14,6 +14,7 @@ export type Show = {
   isCustom?: boolean | undefined;
   isHero?: boolean | undefined;
   videoUrl?: string | undefined;
+  episodeVideos?: Record<number, string> | undefined;
   createdAt?: string | undefined;
 };
 
@@ -27,6 +28,7 @@ export type NewShowInput = {
   rating?: string | undefined;
   isHero?: boolean | undefined;
   videoUrl?: string | undefined;
+  episodeVideos?: Record<number, string> | undefined;
 };
 
 export type Genre =

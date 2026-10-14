@@ -44,23 +44,87 @@ export function getEpisodeVideoUrl(
   show: Show,
   episodeNumber: number = 1,
 ): string {
+  // 1. Check if an explicit episode-specific video URL is defined
+  if (show.episodeVideos && show.episodeVideos[episodeNumber]) {
+    const epUrl = show.episodeVideos[episodeNumber];
+    if (epUrl && epUrl.trim()) {
+      return epUrl.trim();
+    }
+  }
+
+  // 2. Check if show.videoUrl contains an episode placeholder like {ep} or {episode}
   if (show.videoUrl && show.videoUrl.trim()) {
-    // If user specified an episode placeholder like {ep} or {episode}
     if (show.videoUrl.includes("{ep}") || show.videoUrl.includes("{episode}")) {
       return show.videoUrl
-        .replace("{ep}", String(episodeNumber))
-        .replace("{episode}", String(episodeNumber));
+        .replace(/\{ep\}/g, String(episodeNumber))
+        .replace(/\{episode\}/g, String(episodeNumber));
     }
+    // If it's a single video URL, use it directly
     return show.videoUrl.trim();
   }
 
-  // Use preset based on episode index (0-indexed)
+  // 3. Fallback to high-speed Google Cloud CDN demo stream
   const idx =
     Math.max(0, episodeNumber - 1) % GOOGLE_CLOUD_DEFAULT_STREAMS.length;
   return (
     GOOGLE_CLOUD_DEFAULT_STREAMS[idx]?.url ??
     GOOGLE_CLOUD_DEFAULT_STREAMS[0]!.url
   );
+}
+
+/**
+ * Generates the standardized Google Cloud Storage object path for an episode.
+ * Structure: Tadka4u/<shelf>/<showSlug>/episode-<episodeNumber>.mp4
+ */
+export function generateGcsPath(
+  shelfName: string,
+  showSlug: string,
+  episodeNumber: number,
+): string {
+  const cleanShelf = (shelfName || "General")
+    .trim()
+    .replace(/[^a-zA-Z0-9_-]/g, "");
+  const cleanSlug = (showSlug || "show")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]/g, "-");
+  return `Tadka4u/${cleanShelf}/${cleanSlug}/episode-${episodeNumber}.mp4`;
+}
+
+/**
+ * Generates the full Google Cloud Storage public HTTPS URL.
+ */
+export function generateGcsUrl(
+  bucketName: string,
+  shelfName: string,
+  showSlug: string,
+  episodeNumber: number,
+): string {
+  const cleanBucket = (bucketName || "tadka4u-media")
+    .trim()
+    .replace(/[^a-zA-Z0-9._-]/g, "");
+  const objectPath = generateGcsPath(shelfName, showSlug, episodeNumber);
+  return `https://storage.googleapis.com/${cleanBucket}/${objectPath}`;
+}
+
+/**
+ * Generates CLI upload commands for gcloud and gsutil.
+ */
+export function generateGcsCliCommands(
+  bucketName: string,
+  shelfName: string,
+  showSlug: string,
+  episodeNumber: number,
+  localFileName: string = "episode.mp4",
+): { gsutil: string; gcloud: string } {
+  const cleanBucket = (bucketName || "tadka4u-media")
+    .trim()
+    .replace(/[^a-zA-Z0-9._-]/g, "");
+  const objectPath = generateGcsPath(shelfName, showSlug, episodeNumber);
+  return {
+    gsutil: `gsutil cp "${localFileName}" gs://${cleanBucket}/${objectPath}`,
+    gcloud: `gcloud storage cp "${localFileName}" gs://${cleanBucket}/${objectPath}`,
+  };
 }
 
 /**

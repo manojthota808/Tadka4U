@@ -196,6 +196,17 @@ async function syncRemoteShows(): Promise<void> {
         isCustom: true,
         isHero: Boolean(row["is_hero"]),
         videoUrl: row["video_url"] ? String(row["video_url"]) : undefined,
+        episodeVideos: row["episode_videos"]
+          ? typeof row["episode_videos"] === "object"
+            ? (row["episode_videos"] as Record<number, string>)
+            : (() => {
+                try {
+                  return JSON.parse(String(row["episode_videos"]));
+                } catch {
+                  return undefined;
+                }
+              })()
+          : undefined,
         createdAt: row["created_at"] ? String(row["created_at"]) : undefined,
       };
     });
@@ -382,6 +393,7 @@ export const catalogApi = {
         isCustom: true,
         isHero: Boolean(input.isHero),
         videoUrl: input.videoUrl?.trim() ? input.videoUrl.trim() : undefined,
+        episodeVideos: input.episodeVideos,
         createdAt: new Date().toISOString(),
       };
 
@@ -403,6 +415,7 @@ export const catalogApi = {
             is_custom: true,
             is_hero: Boolean(newShow.isHero),
             video_url: newShow.videoUrl ?? null,
+            episode_videos: newShow.episodeVideos ?? null,
           };
 
           const { error: dbError } = await dynamicDb
