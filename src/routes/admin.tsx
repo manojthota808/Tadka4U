@@ -3,8 +3,10 @@ import {
   useState,
   useEffect,
   useCallback,
+  useMemo,
   useRef,
   useId,
+  type ReactNode,
   type DragEvent,
   type ChangeEvent,
 } from "react";
@@ -56,55 +58,65 @@ interface ShelfMapping {
   description: string;
 }
 
+interface ShelfSection {
+  id: string;
+  title: string;
+  icon: ReactNode;
+  badgeText: string;
+  colorBadge: string;
+  description: string;
+  shows: Show[];
+}
+
 const SHELF_MAPPINGS: ShelfMapping[] = [
   {
+    genre: "Drama",
+    shelfTitle: "Drama",
+    tag: "DRAMA",
+    badgeHint: "EXCLUSIVE",
+    description: "Family sagas, intense rivalries, and royal secrets.",
+  },
+  {
     genre: "Thriller",
-    shelfTitle: "Edge of your seat",
+    shelfTitle: "Thriller",
     tag: "THRILLER",
-    badgeHint: "NEW / THRILLER",
+    badgeHint: "SUSPENSE",
     description: "High stakes, dark mysteries, and nail-biting suspense.",
   },
   {
     genre: "Romance",
-    shelfTitle: "Love Stories",
+    shelfTitle: "Romance",
     tag: "ROMANCE",
-    badgeHint: "POPULAR / ROMANCE",
+    badgeHint: "POPULAR",
     description:
       "Passionate romance, deep connections, and emotional journeys.",
   },
   {
-    genre: "Drama",
-    shelfTitle: "Royal & Drama Secrets",
-    tag: "DRAMA",
-    badgeHint: "EXCLUSIVE / DRAMA",
-    description: "Family sagas, intense rivalries, and royal secrets.",
-  },
-  {
     genre: "Comedy",
-    shelfTitle: "Binge Laughs",
+    shelfTitle: "Comedy",
     tag: "COMEDY",
-    badgeHint: "FUN / COMEDY",
+    badgeHint: "COMEDY",
     description: "Lighthearted humor, relatable chaos, and fun drama.",
   },
   {
     genre: "Horror",
-    shelfTitle: "Dark & Paranormal",
+    shelfTitle: "Horror",
     tag: "HORROR",
-    badgeHint: "CHILLING / HORROR",
+    badgeHint: "CHILLING",
     description: "Chilling mysteries and haunted ancestral tales.",
   },
   {
     genre: "Action",
-    shelfTitle: "Trending & Action",
+    shelfTitle: "Action",
     tag: "ACTION",
-    badgeHint: "HIT / ACTION",
+    badgeHint: "HIT",
     description: "High-octane excitement and hero adventures.",
   },
   {
     genre: "Mystery",
-    shelfTitle: "Edge of your seat",
+    shelfTitle: "Thriller",
     tag: "MYSTERY",
-    badgeHint: "PUZZLE / MYSTERY",
+    badgeHint: "PUZZLE",
     description: "Intriguing whodunits and detective puzzles.",
   },
 ];
@@ -210,6 +222,10 @@ function AdminPage() {
   // Catalog Manager State
   const [catalogSearch, setCatalogSearch] = useState("");
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [catalogViewMode, setCatalogViewMode] = useState<"shelves" | "list">(
+    "shelves",
+  );
+  const [selectedShelfFilter, setSelectedShelfFilter] = useState<string>("all");
   const [copiedSql, setCopiedSql] = useState(false);
 
   // Cloud Database Status
@@ -410,7 +426,19 @@ function AdminPage() {
 
   // Delete show handler
   const handleDeleteShow = async (id: string, showTitle: string) => {
-    if (!confirm(`Are you sure you want to delete "${showTitle}"?`)) {
+    const show = allShows.find((s) => s.id === id);
+    if (show && !show.isCustom) {
+      toast.info(
+        `"${showTitle}" is an original demo seed show and cannot be deleted. Any uploaded or custom show can be deleted anytime.`,
+      );
+      return;
+    }
+
+    if (
+      !confirm(
+        `Are you sure you want to delete "${showTitle}"? This will remove it from the homepage and cloud database immediately.`,
+      )
+    ) {
       return;
     }
 
@@ -435,6 +463,248 @@ function AdminPage() {
     toast.success("SQL script copied to clipboard!");
     setTimeout(() => setCopiedSql(false), 2500);
   };
+
+  // Filtered Catalog Shows & Shelf Breakdown (computed unconditionally for hooks rules)
+  const filteredCatalogShows = allShows.filter(
+    (s) =>
+      s.title.toLowerCase().includes(catalogSearch.toLowerCase().trim()) ||
+      s.genre.toLowerCase().includes(catalogSearch.toLowerCase().trim()),
+  );
+
+  const shelfSections = useMemo(() => {
+    const q = catalogSearch.toLowerCase().trim();
+    const filterFn = (s: Show) =>
+      !q ||
+      s.title.toLowerCase().includes(q) ||
+      s.genre.toLowerCase().includes(q) ||
+      Boolean(s.badge && s.badge.toLowerCase().includes(q));
+
+    const list: ShelfSection[] = [
+      {
+        id: "hero",
+        title: "Top Hero Banner",
+        icon: <Star className="size-4 text-amber-400 fill-amber-400" />,
+        badgeText: "HERO BANNER",
+        colorBadge: "bg-amber-500/20 text-amber-300 border-amber-500/30",
+        description:
+          "Rotating spotlight banner featured at the top of the homepage.",
+        shows: allShows.filter((s) => s.isHero && filterFn(s)),
+      },
+      {
+        id: "new",
+        title: "New Releases",
+        icon: <Sparkles className="size-4 text-sky-400" />,
+        badgeText: "NEW RELEASES",
+        colorBadge: "bg-sky-500/20 text-sky-300 border-sky-500/30",
+        description:
+          "Titles with badge NEW, NEW EPISODES, or newly published additions.",
+        shows: allShows.filter(
+          (s) =>
+            (s.isCustom || s.badge?.toLowerCase().includes("new")) &&
+            filterFn(s),
+        ),
+      },
+      {
+        id: "drama",
+        title: "Drama",
+        icon: <Sparkles className="size-4 text-purple-400" />,
+        badgeText: "DRAMA",
+        colorBadge: "bg-purple-500/20 text-purple-300 border-purple-500/30",
+        description: "Titles strictly categorized under the Drama shelf.",
+        shows: allShows.filter(
+          (s) => s.genre.toLowerCase() === "drama" && filterFn(s),
+        ),
+      },
+      {
+        id: "thriller",
+        title: "Thriller",
+        icon: <Zap className="size-4 text-amber-400" />,
+        badgeText: "THRILLER",
+        colorBadge: "bg-amber-500/20 text-amber-300 border-amber-500/30",
+        description: "Titles strictly categorized under the Thriller shelf.",
+        shows: allShows.filter(
+          (s) => s.genre.toLowerCase() === "thriller" && filterFn(s),
+        ),
+      },
+      {
+        id: "romance",
+        title: "Romance",
+        icon: <Heart className="size-4 text-rose-400" />,
+        badgeText: "ROMANCE",
+        colorBadge: "bg-rose-500/20 text-rose-300 border-rose-500/30",
+        description: "Titles strictly categorized under the Romance shelf.",
+        shows: allShows.filter(
+          (s) => s.genre.toLowerCase() === "romance" && filterFn(s),
+        ),
+      },
+      {
+        id: "comedy",
+        title: "Comedy",
+        icon: <Sparkles className="size-4 text-emerald-400" />,
+        badgeText: "COMEDY",
+        colorBadge: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30",
+        description: "Titles strictly categorized under the Comedy shelf.",
+        shows: allShows.filter(
+          (s) => s.genre.toLowerCase() === "comedy" && filterFn(s),
+        ),
+      },
+      {
+        id: "horror",
+        title: "Horror",
+        icon: <Zap className="size-4 text-red-400" />,
+        badgeText: "HORROR",
+        colorBadge: "bg-red-500/20 text-red-300 border-red-500/30",
+        description: "Titles strictly categorized under the Horror shelf.",
+        shows: allShows.filter(
+          (s) => s.genre.toLowerCase() === "horror" && filterFn(s),
+        ),
+      },
+    ];
+
+    const standardGenres = new Set([
+      "drama",
+      "thriller",
+      "romance",
+      "comedy",
+      "horror",
+    ]);
+    const otherShows = allShows.filter(
+      (s) => !standardGenres.has(s.genre.toLowerCase()) && filterFn(s),
+    );
+
+    if (otherShows.length > 0) {
+      list.push({
+        id: "other",
+        title: "Other Genres",
+        icon: <Layers className="size-4 text-primary" />,
+        badgeText: "CUSTOM",
+        colorBadge: "bg-primary/20 text-primary border-primary/30",
+        description: "Titles in custom genres (e.g. Sci-Fi, Mystery, Action).",
+        shows: otherShows,
+      });
+    }
+
+    return list;
+  }, [allShows, catalogSearch]);
+
+  const displayedShelves =
+    selectedShelfFilter === "all"
+      ? shelfSections
+      : shelfSections.filter((s) => s.id === selectedShelfFilter);
+
+  const renderShowRow = (s: Show) => (
+    <div
+      key={s.id}
+      className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-secondary/20 transition-colors"
+    >
+      <div className="flex items-center gap-3.5">
+        <img
+          src={s.image}
+          alt={s.title}
+          className="w-12 h-16 object-cover rounded-lg border border-border/60 flex-shrink-0 shadow-sm"
+        />
+        <div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <h4 className="text-sm font-semibold text-foreground m-0">
+              {s.title}
+            </h4>
+            {s.badge && (
+              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-primary text-white">
+                {s.badge}
+              </span>
+            )}
+            {s.isHero && (
+              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1">
+                <Sparkles className="size-2.5 text-amber-400" />
+                HERO BANNER
+              </span>
+            )}
+            {s.isCustom ? (
+              <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/30">
+                Custom Published
+              </span>
+            ) : (
+              <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full bg-secondary text-muted-foreground border border-border">
+                Original Seed
+              </span>
+            )}
+          </div>
+          <div className="text-xs text-muted-foreground flex items-center gap-2 mt-1.5 flex-wrap">
+            <span className="font-semibold text-foreground">{s.genre}</span>
+            <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+              Shelf: {getShelfMapping(s.genre).shelfTitle}
+            </span>
+            {(s.isCustom || s.badge?.toLowerCase().includes("new")) && (
+              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-400 border border-sky-500/25">
+                New Releases
+              </span>
+            )}
+            <span>·</span>
+            <span className="flex items-center gap-1 text-amber-400">
+              <Star className="size-3 fill-amber-400" />
+              {s.rating}
+            </span>
+            <span>·</span>
+            <span>{s.episodes} episodes</span>
+            <span>·</span>
+            <span className="font-mono text-[10px] text-muted-foreground/70">
+              ID: {s.id}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2 self-end sm:self-auto flex-wrap">
+        <Button
+          variant={s.isHero ? "cinema" : "outline"}
+          size="sm"
+          onClick={async () => {
+            const res = await catalogApi.toggleHero(s.id);
+            toast.success(
+              res.isHero
+                ? `"${s.title}" will now pop on the Top Hero Carousel!`
+                : `"${s.title}" removed from Hero Carousel.`,
+            );
+          }}
+          className="text-xs h-8 gap-1.5"
+          title={
+            s.isHero
+              ? "Featured in top hero carousel. Click to remove."
+              : "Feature this show in top hero carousel."
+          }
+        >
+          <Sparkles className="size-3 text-amber-300" />
+          {s.isHero ? "In Hero Banner" : "Pop on Hero"}
+        </Button>
+
+        <Button
+          variant="ghost"
+          size="sm"
+          asChild
+          className="text-xs text-muted-foreground hover:text-white"
+        >
+          <Link to="/show/$showId" params={{ showId: s.id }} target="_blank">
+            <ExternalLink className="size-3.5 mr-1" />
+            View
+          </Link>
+        </Button>
+
+        <Button
+          variant="ghost"
+          size="sm"
+          disabled={deletingId === s.id}
+          onClick={() => handleDeleteShow(s.id, s.title)}
+          className="text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
+          title={
+            s.isCustom ? "Delete this custom show" : "Original demo seed show"
+          }
+        >
+          <Trash2 className="size-3.5 mr-1" />
+          {deletingId === s.id ? "Deleting…" : "Delete"}
+        </Button>
+      </div>
+    </div>
+  );
 
   // 2. Auth Loading state
   if (!isLoaded) {
@@ -529,11 +799,6 @@ function AdminPage() {
 
   // Calculated Stats
   const customShowsCount = allShows.filter((s) => s.isCustom).length;
-  const filteredCatalogShows = allShows.filter(
-    (s) =>
-      s.title.toLowerCase().includes(catalogSearch.toLowerCase().trim()) ||
-      s.genre.toLowerCase().includes(catalogSearch.toLowerCase().trim()),
-  );
 
   return (
     <PageLayout>
@@ -1291,7 +1556,7 @@ function AdminPage() {
                     {(badge?.toUpperCase().includes("NEW") || !badge) && (
                       <div className="flex items-center justify-between text-[11px] text-sky-300 bg-sky-500/10 p-2 rounded-lg border border-sky-500/20">
                         <span>
-                          Shelf: <strong>"Fresh off the reel"</strong>
+                          Shelf: <strong>"New Releases"</strong>
                         </span>
                         <span className="text-[9px] font-bold uppercase px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-500/30">
                           NEW RELEASES
@@ -1326,7 +1591,7 @@ function AdminPage() {
                 <div className="flex items-center justify-between pb-2.5 border-b border-border/50">
                   <h3 className="text-sm font-semibold flex items-center gap-2">
                     <Layers className="size-4 text-primary" />
-                    Homepage Shelves & Tag Guide
+                    Homepage Shelves Guide
                   </h3>
                   <span className="text-[10px] font-bold text-primary uppercase">
                     Directory
@@ -1338,12 +1603,12 @@ function AdminPage() {
                 </p>
 
                 <div className="space-y-2 text-xs">
-                  {/* Fresh off the reel */}
+                  {/* New Releases */}
                   <div className="p-2.5 rounded-xl bg-sky-500/10 border border-sky-500/25 flex items-center justify-between gap-2">
                     <div>
                       <div className="font-semibold text-white flex items-center gap-1.5">
                         <Sparkles className="size-3.5 text-sky-400" />
-                        Fresh off the reel
+                        New Releases
                       </div>
                       <div className="text-[10px] text-sky-200/80 mt-0.5">
                         Set Badge to{" "}
@@ -1361,46 +1626,12 @@ function AdminPage() {
                     </span>
                   </div>
 
-                  {/* Edge of your seat */}
-                  <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/25 flex items-center justify-between gap-2">
-                    <div>
-                      <div className="font-semibold text-white flex items-center gap-1.5">
-                        <Zap className="size-3.5 text-amber-400" />
-                        Edge of your seat
-                      </div>
-                      <div className="text-[10px] text-amber-200/80 mt-0.5">
-                        Select Genre:{" "}
-                        <strong className="text-white">Thriller</strong>
-                      </div>
-                    </div>
-                    <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 uppercase flex-shrink-0">
-                      THRILLER
-                    </span>
-                  </div>
-
-                  {/* Love Stories */}
-                  <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/25 flex items-center justify-between gap-2">
-                    <div>
-                      <div className="font-semibold text-white flex items-center gap-1.5">
-                        <Heart className="size-3.5 text-rose-400" />
-                        Love Stories
-                      </div>
-                      <div className="text-[10px] text-rose-200/80 mt-0.5">
-                        Select Genre:{" "}
-                        <strong className="text-white">Romance</strong>
-                      </div>
-                    </div>
-                    <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30 uppercase flex-shrink-0">
-                      ROMANCE
-                    </span>
-                  </div>
-
-                  {/* Royal & Drama Secrets */}
+                  {/* Drama */}
                   <div className="p-2.5 rounded-xl bg-purple-500/10 border border-purple-500/25 flex items-center justify-between gap-2">
                     <div>
                       <div className="font-semibold text-white flex items-center gap-1.5">
                         <Sparkles className="size-3.5 text-purple-400" />
-                        Royal & Drama Secrets
+                        Drama
                       </div>
                       <div className="text-[10px] text-purple-200/80 mt-0.5">
                         Select Genre:{" "}
@@ -1412,12 +1643,46 @@ function AdminPage() {
                     </span>
                   </div>
 
-                  {/* Binge Laughs */}
+                  {/* Thriller */}
+                  <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/25 flex items-center justify-between gap-2">
+                    <div>
+                      <div className="font-semibold text-white flex items-center gap-1.5">
+                        <Zap className="size-3.5 text-amber-400" />
+                        Thriller
+                      </div>
+                      <div className="text-[10px] text-amber-200/80 mt-0.5">
+                        Select Genre:{" "}
+                        <strong className="text-white">Thriller</strong>
+                      </div>
+                    </div>
+                    <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 uppercase flex-shrink-0">
+                      THRILLER
+                    </span>
+                  </div>
+
+                  {/* Romance */}
+                  <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/25 flex items-center justify-between gap-2">
+                    <div>
+                      <div className="font-semibold text-white flex items-center gap-1.5">
+                        <Heart className="size-3.5 text-rose-400" />
+                        Romance
+                      </div>
+                      <div className="text-[10px] text-rose-200/80 mt-0.5">
+                        Select Genre:{" "}
+                        <strong className="text-white">Romance</strong>
+                      </div>
+                    </div>
+                    <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30 uppercase flex-shrink-0">
+                      ROMANCE
+                    </span>
+                  </div>
+
+                  {/* Comedy */}
                   <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-between gap-2">
                     <div>
                       <div className="font-semibold text-white flex items-center gap-1.5">
                         <Sparkles className="size-3.5 text-emerald-400" />
-                        Binge Laughs
+                        Comedy
                       </div>
                       <div className="text-[10px] text-emerald-200/80 mt-0.5">
                         Select Genre:{" "}
@@ -1429,12 +1694,12 @@ function AdminPage() {
                     </span>
                   </div>
 
-                  {/* Dark & Paranormal */}
+                  {/* Horror */}
                   <div className="p-2.5 rounded-xl bg-red-500/10 border border-red-500/25 flex items-center justify-between gap-2">
                     <div>
                       <div className="font-semibold text-white flex items-center gap-1.5">
                         <Zap className="size-3.5 text-red-400" />
-                        Dark & Paranormal
+                        Horror
                       </div>
                       <div className="text-[10px] text-red-200/80 mt-0.5">
                         Select Genre:{" "}
@@ -1451,7 +1716,7 @@ function AdminPage() {
                     <div>
                       <div className="font-semibold text-white flex items-center gap-1.5">
                         <Star className="size-3.5 text-amber-400" />
-                        Top Front Spotlight
+                        Top Hero Banner
                       </div>
                       <div className="text-[10px] text-amber-200/80 mt-0.5">
                         Check{" "}
@@ -1470,159 +1735,174 @@ function AdminPage() {
           </div>
         )}
 
-        {/* ================= TAB 2: CATALOG MANAGER ================= */}
+        {/* ================= TAB 2: CONTENT MANAGER (SHELF-BY-SHELF) ================= */}
         {activeTab === "catalog" && (
-          <div className="space-y-4">
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-card border border-border/60 rounded-xl p-4">
-              <div className="relative w-full sm:w-80">
-                <Search className="size-4 text-muted-foreground absolute left-3 top-3" />
+          <div className="space-y-6">
+            {/* Header controls: Search & View Mode Switcher */}
+            <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 bg-card border border-border/70 rounded-2xl p-4 sm:p-5 shadow-lg">
+              <div className="relative flex-1 max-w-md">
+                <Search className="size-4 text-muted-foreground absolute left-3.5 top-3" />
                 <input
                   type="text"
-                  placeholder="Filter shows by title or genre…"
+                  placeholder="Filter content by title, genre, or badge…"
                   value={catalogSearch}
                   onChange={(e) => setCatalogSearch(e.target.value)}
-                  className="w-full bg-secondary/40 border border-border rounded-lg pl-9 pr-3 py-2 text-xs text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary"
+                  className="w-full bg-secondary/40 border border-border rounded-xl pl-10 pr-4 py-2 text-xs text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary transition-colors"
                 />
               </div>
 
-              <div className="text-xs text-muted-foreground flex items-center gap-2">
-                <span>
-                  Showing {filteredCatalogShows.length} of {allShows.length}{" "}
-                  titles
-                </span>
+              <div className="flex items-center gap-3 justify-between sm:justify-end flex-wrap">
+                <div className="text-xs text-muted-foreground">
+                  <span className="font-semibold text-foreground">
+                    {filteredCatalogShows.length}
+                  </span>{" "}
+                  total shows
+                </div>
+
+                {/* View Mode Toggle: Group by Shelf vs Flat List */}
+                <div className="inline-flex rounded-xl bg-secondary/50 p-1 border border-border/60">
+                  <button
+                    type="button"
+                    onClick={() => setCatalogViewMode("shelves")}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                      catalogViewMode === "shelves"
+                        ? "bg-primary text-white shadow-sm"
+                        : "text-muted-foreground hover:text-white"
+                    }`}
+                  >
+                    <Layers className="size-3.5" />
+                    Group by Shelf
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCatalogViewMode("list")}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                      catalogViewMode === "list"
+                        ? "bg-primary text-white shadow-sm"
+                        : "text-muted-foreground hover:text-white"
+                    }`}
+                  >
+                    <Film className="size-3.5" />
+                    All Shows List
+                  </button>
+                </div>
               </div>
             </div>
 
-            <div className="bg-card border border-border/60 rounded-2xl overflow-hidden shadow-lg">
-              <div className="divide-y divide-border/40">
-                {filteredCatalogShows.map((s) => (
-                  <div
-                    key={s.id}
-                    className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-secondary/20 transition-colors"
+            {/* If Group by Shelf: Shelf Filter Tabs */}
+            {catalogViewMode === "shelves" && (
+              <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
+                <button
+                  type="button"
+                  onClick={() => setSelectedShelfFilter("all")}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap border transition-all ${
+                    selectedShelfFilter === "all"
+                      ? "bg-primary text-white border-primary shadow-sm"
+                      : "bg-secondary/40 text-muted-foreground border-border hover:text-white hover:border-border/80"
+                  }`}
+                >
+                  All Shelves ({shelfSections.length})
+                </button>
+                {shelfSections.map((shelf) => (
+                  <button
+                    key={shelf.id}
+                    type="button"
+                    onClick={() => setSelectedShelfFilter(shelf.id)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap border transition-all ${
+                      selectedShelfFilter === shelf.id
+                        ? "bg-primary text-white border-primary shadow-sm"
+                        : "bg-secondary/40 text-muted-foreground border-border hover:text-white hover:border-border/80"
+                    }`}
                   >
-                    <div className="flex items-center gap-3.5">
-                      <img
-                        src={s.image}
-                        alt={s.title}
-                        className="w-12 h-16 object-cover rounded-lg border border-border/60 flex-shrink-0 shadow-sm"
-                      />
-                      <div>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <h4 className="text-sm font-semibold text-foreground m-0">
-                            {s.title}
-                          </h4>
-                          {s.badge && (
-                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-primary text-white">
-                              {s.badge}
-                            </span>
-                          )}
-                          {s.isHero && (
-                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1">
-                              <Sparkles className="size-2.5 text-amber-400" />
-                              IN HERO BANNER
-                            </span>
-                          )}
-                          {s.isCustom ? (
-                            <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/30">
-                              Custom Published
-                            </span>
-                          ) : (
-                            <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full bg-secondary text-muted-foreground border border-border">
-                              Original Seed
-                            </span>
-                          )}
-                        </div>
-                        <div className="text-xs text-muted-foreground flex items-center gap-2 mt-1.5 flex-wrap">
-                          <span className="font-semibold text-foreground">
-                            {s.genre}
+                    {shelf.title}
+                    <span
+                      className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                        selectedShelfFilter === shelf.id
+                          ? "bg-white/20 text-white"
+                          : "bg-secondary text-foreground"
+                      }`}
+                    >
+                      {shelf.shows.length}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Shelves View Mode */}
+            {catalogViewMode === "shelves" ? (
+              <div className="space-y-6">
+                {displayedShelves.map((shelf) => (
+                  <div
+                    key={shelf.id}
+                    className="bg-card border border-border/70 rounded-2xl overflow-hidden shadow-lg transition-all"
+                  >
+                    {/* Shelf Header */}
+                    <div className="p-4 sm:p-5 bg-secondary/30 border-b border-border/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2.5 flex-wrap">
+                          <div className="size-8 rounded-lg bg-secondary border border-border flex items-center justify-center">
+                            {shelf.icon}
+                          </div>
+                          <h3 className="text-base font-bold text-foreground m-0">
+                            {shelf.title}
+                          </h3>
+                          <span
+                            className={`text-[9px] font-bold px-2 py-0.5 rounded-full border uppercase ${shelf.colorBadge}`}
+                          >
+                            {shelf.badgeText}
                           </span>
-                          <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
-                            Shelf: "{getShelfMapping(s.genre).shelfTitle}" [
-                            {getShelfMapping(s.genre).tag}]
-                          </span>
-                          {(s.isCustom ||
-                            s.badge?.toLowerCase().includes("new")) && (
-                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-400 border border-sky-500/25">
-                              Shelf: "Fresh off the reel"
-                            </span>
-                          )}
-                          <span>·</span>
-                          <span className="flex items-center gap-1 text-amber-400">
-                            <Star className="size-3 fill-amber-400" />
-                            {s.rating}
-                          </span>
-                          <span>·</span>
-                          <span>{s.episodes} episodes</span>
-                          <span>·</span>
-                          <span className="font-mono text-[10px] text-muted-foreground/70">
-                            ID: {s.id}
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-secondary border border-border font-medium text-muted-foreground">
+                            {shelf.shows.length}{" "}
+                            {shelf.shows.length === 1 ? "show" : "shows"}
                           </span>
                         </div>
+                        <p className="text-xs text-muted-foreground m-0 pl-10.5">
+                          {shelf.description}
+                        </p>
+                      </div>
+
+                      <div className="text-xs text-muted-foreground pl-10.5 sm:pl-0">
+                        {shelf.id === "hero"
+                          ? "Toggle 'Pop on Hero' to manage"
+                          : `Shelf mapping: ${shelf.title}`}
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 self-end sm:self-auto flex-wrap">
-                      <Button
-                        variant={s.isHero ? "cinema" : "outline"}
-                        size="sm"
-                        onClick={async () => {
-                          const res = await catalogApi.toggleHero(s.id);
-                          toast.success(
-                            res.isHero
-                              ? `"${s.title}" will now pop on the Top Hero Carousel!`
-                              : `"${s.title}" removed from Hero Carousel.`,
-                          );
-                        }}
-                        className="text-xs h-8 gap-1.5"
-                        title={
-                          s.isHero
-                            ? "Currently displayed in top hero carousel. Click to remove."
-                            : "Click to feature this show in the top hero carousel on homepage."
-                        }
-                      >
-                        <Sparkles className="size-3 text-amber-300" />
-                        {s.isHero ? "In Hero Banner" : "Pop on Hero"}
-                      </Button>
-
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        asChild
-                        className="text-xs text-muted-foreground hover:text-white"
-                      >
-                        <Link
-                          to="/show/$showId"
-                          params={{ showId: s.id }}
-                          target="_blank"
-                        >
-                          <ExternalLink className="size-3.5 mr-1" />
-                          View
-                        </Link>
-                      </Button>
-
-                      {s.isCustom && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          disabled={deletingId === s.id}
-                          onClick={() => handleDeleteShow(s.id, s.title)}
-                          className="text-xs text-destructive hover:bg-destructive/10"
-                        >
-                          <Trash2 className="size-3.5 mr-1" />
-                          {deletingId === s.id ? "Deleting…" : "Delete"}
-                        </Button>
-                      )}
-                    </div>
+                    {/* Shelf Shows List */}
+                    {shelf.shows.length > 0 ? (
+                      <div className="divide-y divide-border/40">
+                        {shelf.shows.map((s) => renderShowRow(s))}
+                      </div>
+                    ) : (
+                      <div className="p-8 text-center text-muted-foreground text-xs bg-secondary/10">
+                        No shows currently in "{shelf.title}". Publish a show in
+                        the Studio or add this genre to display it here.
+                      </div>
+                    )}
                   </div>
                 ))}
 
-                {filteredCatalogShows.length === 0 && (
-                  <div className="p-8 text-center text-muted-foreground text-xs">
-                    No shows match your search "{catalogSearch}".
+                {displayedShelves.length === 0 && (
+                  <div className="p-12 text-center text-muted-foreground text-sm bg-card rounded-2xl border border-border">
+                    No shelves match the filter.
                   </div>
                 )}
               </div>
-            </div>
+            ) : (
+              /* Flat Shows List Mode */
+              <div className="bg-card border border-border/60 rounded-2xl overflow-hidden shadow-lg">
+                <div className="divide-y divide-border/40">
+                  {filteredCatalogShows.map((s) => renderShowRow(s))}
+
+                  {filteredCatalogShows.length === 0 && (
+                    <div className="p-8 text-center text-muted-foreground text-xs">
+                      No shows match your search "{catalogSearch}".
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
