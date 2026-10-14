@@ -779,14 +779,13 @@ h3 {
   width: 150px;
   height: 150px;
   border-radius: 50%;
-  padding: 4px;
+  padding: 2px;
   background: linear-gradient(
     135deg,
-    #ff5940 0%,
-    #ff2e63 50%,
-    oklch(0.87 0.16 90) 100%
+    oklch(0.63 0.24 25) 0%,
+    oklch(0.68 0.22 35) 100%
   );
-  box-shadow: 0 0 35px oklch(0.63 0.24 25 / 0.38);
+  box-shadow: 0 0 12px oklch(0.63 0.24 25 / 0.22);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -797,7 +796,7 @@ h3 {
   border-radius: 50%;
   object-fit: cover;
   display: block;
-  border: 3px solid var(--background);
+  border: 2px solid var(--background);
 }
 .contact-status-pill {
   display: inline-flex;

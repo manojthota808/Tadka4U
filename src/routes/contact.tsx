@@ -69,22 +69,18 @@ function Contact() {
             <div className="contact-avatar-ring">
               <img
                 src={manojPhoto}
-                alt="Manoj Thota - Designer & Developer"
+                alt="Manoj Thota - Agentic AI Engineer"
                 className="contact-avatar-img"
                 width={160}
                 height={160}
               />
-            </div>
-            <div className="contact-status-pill">
-              <span className="contact-status-dot" />
-              Available for projects
             </div>
           </div>
 
           <div className="contact-hero-info">
             <div className="eyebrow">
               <Sparkles className="size-3.5 text-primary" />
-              <span>DESIGNER & FULL-STACK DEVELOPER</span>
+              <span>AGENTIC AI ENGINEER</span>
             </div>
             <h1>Manoj Thota</h1>
             <p className="contact-tagline">
