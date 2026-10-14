@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useRef, useEffect } from "react";
-import { Plus, Check, Play, Star, Cloud, X } from "lucide-react";
+import { Plus, Check, Play, Star, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   PageLayout,
@@ -90,9 +90,8 @@ function ShowDetail() {
                     Episode {episode} · {show.title}
                   </h2>
                 </div>
-                <span className="hidden md:inline-flex items-center gap-1 text-[11px] font-medium text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
-                  <Cloud size={11} />
-                  Google Cloud 1080p
+                <span className="hidden md:inline-flex items-center text-[10px] font-semibold text-white/80 bg-white/10 px-2.5 py-0.5 rounded-full border border-white/15">
+                  1080p Full HD
                 </span>
               </div>
 
@@ -174,10 +173,8 @@ function ShowDetail() {
               <span>Hindi</span>
               <span className="age">U/A 16+</span>
               <span>{episodeCount} episodes</span>
-              <span className="flex items-center gap-1 text-emerald-400 font-medium">
-                <Cloud size={12} />
-                Google Cloud
-              </span>
+              <span className="font-semibold text-white/90">Full HD</span>
+              <span className="font-medium text-white/60">Dolby 5.1</span>
             </div>
             <p>{show.description}</p>
             <div className="hero-buttons">
@@ -204,13 +201,12 @@ function ShowDetail() {
             <div>
               <h2 className="text-xl font-bold">Episodes</h2>
               <p className="section-subtitle !my-1">
-                Stream all {episodeCount} episodes in high definition powered by
-                Google Cloud edge delivery.
+                Stream all {episodeCount} episodes in crystal-clear high
+                definition.
               </p>
             </div>
-            <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 flex items-center gap-1.5">
-              <Cloud className="size-3 text-emerald-400" />
-              Google Cloud Streaming Active
+            <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-white/10 text-white/90 border border-white/15">
+              1080p Ultra HD
             </span>
           </div>
           <Carousel opts={{ align: "start" }} className="episode-carousel">

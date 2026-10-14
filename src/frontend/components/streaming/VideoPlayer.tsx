@@ -22,6 +22,7 @@ import {
   Check,
   AlertCircle,
   RefreshCw,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -386,27 +387,31 @@ export function VideoPlayer({
         className="w-full h-full object-cover cursor-pointer"
       />
 
-      {/* Top Overlay Banner: Stream source & Close */}
+      {/* Top Overlay Banner: Show Title & Episode Controls */}
       <div
-        className={`absolute top-0 left-0 right-0 p-4 sm:p-5 flex items-center justify-between z-30 bg-gradient-to-b from-black/80 via-black/40 to-transparent transition-opacity duration-300 ${
+        className={`absolute top-0 left-0 right-0 p-4 sm:p-5 flex items-center justify-between z-30 bg-gradient-to-b from-black/85 via-black/45 to-transparent transition-opacity duration-300 ${
           showControls || !isPlaying
             ? "opacity-100"
             : "opacity-0 pointer-events-none"
         }`}
       >
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] sm:text-xs font-semibold backdrop-blur-md shadow-sm">
-            <Cloud className="size-3.5 text-emerald-400 animate-pulse" />
-            <span>Google Cloud Ultra-Fast Stream</span>
-          </div>
-
-          <div className="hidden sm:flex items-center gap-1.5 text-xs text-white/90 font-medium">
-            <span className="font-bold text-white">{show.title}</span>
-            <span className="text-white/50">·</span>
-            <span className="text-primary font-semibold">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-primary text-white shadow-sm">
+              TADKA4U
+            </span>
+            <span className="text-xs sm:text-sm font-bold text-white tracking-tight drop-shadow-md">
+              {show.title}
+            </span>
+            <span className="text-white/40">·</span>
+            <span className="text-xs text-white/90 font-medium">
               Episode {episodeNumber}
             </span>
           </div>
+
+          <span className="hidden sm:inline-flex items-center text-[10px] font-semibold text-white/70 bg-white/10 px-2 py-0.5 rounded border border-white/15 backdrop-blur-md">
+            1080p HD
+          </span>
         </div>
 
         <div className="flex items-center gap-2">
@@ -415,9 +420,10 @@ export function VideoPlayer({
               variant="glass"
               size="sm"
               onClick={onClose}
-              className="text-xs h-8 px-3 rounded-xl bg-black/40 hover:bg-black/60 text-white/90 border-white/15 backdrop-blur-md"
+              className="text-xs h-8 px-3 rounded-full bg-black/50 hover:bg-black/70 text-white/90 border-white/20 backdrop-blur-md gap-1.5"
             >
-              Close Player
+              <X className="size-3.5" />
+              <span>Close</span>
             </Button>
           )}
         </div>
@@ -427,8 +433,8 @@ export function VideoPlayer({
       {isBuffering && !hasError && (
         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-20 bg-black/20 backdrop-blur-xs">
           <div className="size-14 rounded-full border-3 border-primary border-t-transparent animate-spin mb-3 shadow-lg" />
-          <span className="text-xs text-white/90 font-medium tracking-wide">
-            Streaming from Google Cloud…
+          <span className="text-xs text-white/80 font-medium tracking-wide">
+            Loading…
           </span>
         </div>
       )}
@@ -513,7 +519,7 @@ export function VideoPlayer({
               className="text-xs gap-1.5"
             >
               <RefreshCw className="size-3.5" />
-              Switch to High-Speed Google Cloud Stream
+              Switch to Backup HD Stream
             </Button>
             {onClose && (
               <Button
