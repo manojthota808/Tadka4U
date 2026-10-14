@@ -10,7 +10,7 @@ import {
   type DragEvent,
   type ChangeEvent,
 } from "react";
-import { useUser } from "@clerk/react";
+import { useUser, useClerk } from "@clerk/react";
 import {
   Shield,
   Upload,
@@ -207,6 +207,7 @@ create policy "Allow delete on shows" on public.shows
 
 function AdminPage() {
   const { user, isLoaded, isSignedIn } = useUser();
+  const { signOut } = useClerk();
   const allShows = useShows();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const fileInputId = useId();
@@ -412,8 +413,8 @@ function AdminPage() {
     checkDb();
   }, [checkDb]);
 
-  // 1. Authorization Check
-  // Check against VITE_ADMIN_EMAILS (comma separated), or allow signed-in user if unset
+  // 1. Authorization Check: Admin access strictly reserved for thotamanojnaidu@gmail.com
+  const PRIMARY_ADMIN_EMAIL = "thotamanojnaidu@gmail.com";
   const configuredAdminEmails = (
     (typeof import.meta !== "undefined" &&
       import.meta.env?.["VITE_ADMIN_EMAILS"]) ||
@@ -423,14 +424,13 @@ function AdminPage() {
     .map((e: string) => e.trim().toLowerCase())
     .filter(Boolean);
 
+  const allowedAdmins = Array.from(
+    new Set([PRIMARY_ADMIN_EMAIL, ...configuredAdminEmails]),
+  );
+
   const userEmail =
-    user?.primaryEmailAddress?.emailAddress?.toLowerCase() || "";
-  const hasConfiguredList = configuredAdminEmails.length > 0;
-  const isAuthorized =
-    isSignedIn &&
-    (!hasConfiguredList ||
-      configuredAdminEmails.includes(userEmail) ||
-      user?.publicMetadata?.["role"] === "admin");
+    user?.primaryEmailAddress?.emailAddress?.toLowerCase().trim() || "";
+  const isAuthorized = isSignedIn && allowedAdmins.includes(userEmail);
 
   // Drag and drop handlers
   const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
@@ -904,8 +904,11 @@ function AdminPage() {
               Admin Access Required
             </h1>
             <p className="text-sm text-muted-foreground leading-relaxed mb-8 max-w-md mx-auto">
-              Tadka4U Studio allows authorized administrators to upload artwork,
-              publish new short dramas, and manage the live streaming catalog.
+              Access to Tadka4U Studio is strictly reserved for{" "}
+              <strong className="text-foreground">
+                thotamanojnaidu@gmail.com
+              </strong>
+              . Please sign in with your authorized admin account to continue.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
               <Button
@@ -915,7 +918,7 @@ function AdminPage() {
                 asChild
               >
                 <Link to="/sign-in/$" search={{ redirect_url: "/admin" }}>
-                  Sign in with Admin Account
+                  Sign in with thotamanojnaidu@gmail.com
                 </Link>
               </Button>
               <Button
@@ -943,21 +946,34 @@ function AdminPage() {
               <AlertCircle className="size-8" />
             </div>
             <h1 className="text-2xl sm:text-3xl font-semibold mb-3">
-              Restricted Area
+              Admin Access Restricted
             </h1>
             <p className="text-sm text-muted-foreground leading-relaxed mb-4">
               Signed in as{" "}
-              <strong className="text-foreground">{userEmail}</strong>. This
-              email is not listed in the authorized administrator group.
+              <strong className="text-foreground">{userEmail}</strong>. Only the
+              designated administrator (
+              <strong className="text-primary font-semibold">
+                thotamanojnaidu@gmail.com
+              </strong>
+              ) has permission to access the publishing and management studio.
             </p>
-            <div className="p-4 bg-secondary/50 rounded-lg text-xs text-muted-foreground text-left mb-6 font-mono">
-              To grant access, add this email to your environment configuration:
-              <div className="text-primary mt-1 select-all font-semibold">
-                VITE_ADMIN_EMAILS={userEmail}
-              </div>
+            <div className="p-4 bg-secondary/50 rounded-xl text-xs text-muted-foreground mb-6 border border-border/60">
+              To manage Tadka4U content, please sign out and log in with your
+              administrator email:{" "}
+              <strong className="text-foreground">
+                thotamanojnaidu@gmail.com
+              </strong>
+              .
             </div>
-            <div className="flex justify-center gap-3">
-              <Button variant="outline" asChild>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+              <Button
+                variant="cinema"
+                size="lg"
+                onClick={() => signOut({ redirectUrl: "/sign-in/$" })}
+              >
+                Sign Out & Switch Account
+              </Button>
+              <Button variant="outline" size="lg" asChild>
                 <Link to="/">Return to Homepage</Link>
               </Button>
             </div>

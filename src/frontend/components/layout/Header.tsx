@@ -1,6 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { Search, Home, Compass, Bookmark, Film, Mail } from "lucide-react";
-import { Show, UserButton } from "@clerk/react";
+import { Show, UserButton, useUser } from "@clerk/react";
 import { Button } from "@/components/ui/button";
 import { Brand } from "./Brand";
 
@@ -14,6 +14,10 @@ const nav = [
 
 export function Header() {
   const path = useRouterState({ select: (s) => s.location.pathname });
+  const { user } = useUser();
+  const userEmail =
+    user?.primaryEmailAddress?.emailAddress?.toLowerCase().trim() || "";
+  const isAdmin = userEmail === "thotamanojnaidu@gmail.com";
 
   return (
     <>
@@ -52,14 +56,16 @@ export function Header() {
 
           <Show when="signed-in">
             <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="hidden sm:inline-flex text-xs text-muted-foreground hover:text-white border border-border/50"
-                asChild
-              >
-                <Link to="/admin">Studio</Link>
-              </Button>
+              {isAdmin && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="hidden sm:inline-flex text-xs text-muted-foreground hover:text-white border border-border/50"
+                  asChild
+                >
+                  <Link to="/admin">Studio</Link>
+                </Button>
+              )}
               <UserButton />
             </div>
           </Show>
