@@ -1641,46 +1641,8 @@ h3 {
   aspect-ratio: 16 / 9;
   background: #000;
   overflow: hidden;
-}
-
-.theater-episodes-strip {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 12px 20px;
-  background: rgba(12, 12, 16, 0.95);
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
-  overflow-x: auto;
-  scrollbar-width: thin;
-}
-
-.theater-episode-pill {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 14px;
-  border-radius: 9999px;
-  font-size: 12px;
-  font-weight: 600;
-  white-space: nowrap;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  color: rgba(255, 255, 255, 0.75);
-  transition: all 0.2s ease;
-  cursor: pointer;
-}
-
-.theater-episode-pill:hover {
-  background: rgba(255, 255, 255, 0.12);
-  color: #fff;
-  border-color: rgba(255, 255, 255, 0.2);
-}
-
-.theater-episode-pill.active {
-  background: var(--primary, #e50914);
-  color: #fff;
-  border-color: transparent;
-  box-shadow: 0 4px 14px rgba(229, 9, 20, 0.4);
+  border-bottom-left-radius: 17px;
+  border-bottom-right-radius: 17px;
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -387,47 +387,49 @@ export function VideoPlayer({
         className="w-full h-full object-cover cursor-pointer"
       />
 
-      {/* Top Overlay Banner: Show Title & Episode Controls */}
-      <div
-        className={`absolute top-0 left-0 right-0 p-4 sm:p-5 flex items-center justify-between z-30 bg-gradient-to-b from-black/85 via-black/45 to-transparent transition-opacity duration-300 ${
-          showControls || !isPlaying
-            ? "opacity-100"
-            : "opacity-0 pointer-events-none"
-        }`}
-      >
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-primary text-white shadow-sm">
-              TADKA4U
-            </span>
-            <span className="text-xs sm:text-sm font-bold text-white tracking-tight drop-shadow-md">
-              {show.title}
-            </span>
-            <span className="text-white/40">·</span>
-            <span className="text-xs text-white/90 font-medium">
-              Episode {episodeNumber}
+      {/* Top Overlay Banner: Show Title & Episode Controls (Fullscreen Mode) */}
+      {isFullscreen && (
+        <div
+          className={`absolute top-0 left-0 right-0 p-4 sm:p-5 flex items-center justify-between z-30 bg-gradient-to-b from-black/85 via-black/45 to-transparent transition-opacity duration-300 ${
+            showControls || !isPlaying
+              ? "opacity-100"
+              : "opacity-0 pointer-events-none"
+          }`}
+        >
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-primary text-white shadow-sm">
+                TADKA4U
+              </span>
+              <span className="text-xs sm:text-sm font-bold text-white tracking-tight drop-shadow-md">
+                {show.title}
+              </span>
+              <span className="text-white/40">·</span>
+              <span className="text-xs text-white/90 font-medium">
+                Episode {episodeNumber}
+              </span>
+            </div>
+
+            <span className="hidden sm:inline-flex items-center text-[10px] font-semibold text-white/70 bg-white/10 px-2 py-0.5 rounded border border-white/15 backdrop-blur-md">
+              1080p HD
             </span>
           </div>
 
-          <span className="hidden sm:inline-flex items-center text-[10px] font-semibold text-white/70 bg-white/10 px-2 py-0.5 rounded border border-white/15 backdrop-blur-md">
-            1080p HD
-          </span>
+          <div className="flex items-center gap-2">
+            {onClose && (
+              <Button
+                variant="glass"
+                size="sm"
+                onClick={onClose}
+                className="text-xs h-8 px-3 rounded-full bg-black/50 hover:bg-black/70 text-white/90 border-white/20 backdrop-blur-md gap-1.5"
+              >
+                <X className="size-3.5" />
+                <span>Close</span>
+              </Button>
+            )}
+          </div>
         </div>
-
-        <div className="flex items-center gap-2">
-          {onClose && (
-            <Button
-              variant="glass"
-              size="sm"
-              onClick={onClose}
-              className="text-xs h-8 px-3 rounded-full bg-black/50 hover:bg-black/70 text-white/90 border-white/20 backdrop-blur-md gap-1.5"
-            >
-              <X className="size-3.5" />
-              <span>Close</span>
-            </Button>
-          )}
-        </div>
-      </div>
+      )}
 
       {/* Center Big Play/Pause & Buffering Spinner */}
       {isBuffering && !hasError && (
