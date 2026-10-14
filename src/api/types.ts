@@ -12,6 +12,7 @@ export type Show = {
   description: string;
   rating: string;
   isCustom?: boolean | undefined;
+  isHero?: boolean | undefined;
   createdAt?: string | undefined;
 };
 
@@ -23,6 +24,7 @@ export type NewShowInput = {
   badge?: string | undefined;
   description: string;
   rating?: string | undefined;
+  isHero?: boolean | undefined;
 };
 
 export type Genre =

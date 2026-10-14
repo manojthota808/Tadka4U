@@ -194,6 +194,7 @@ async function syncRemoteShows(): Promise<void> {
         description: String(row["description"] || ""),
         rating: String(row["rating"] || "4.8"),
         isCustom: true,
+        isHero: Boolean(row["is_hero"]),
         createdAt: row["created_at"] ? String(row["created_at"]) : undefined,
       };
     });
@@ -378,6 +379,7 @@ export const catalogApi = {
           input.description?.trim() || "A captivating short drama on Tadka4U.",
         rating: input.rating?.trim() || "4.8",
         isCustom: true,
+        isHero: Boolean(input.isHero),
         createdAt: new Date().toISOString(),
       };
 
@@ -397,10 +399,30 @@ export const catalogApi = {
             description: newShow.description,
             rating: newShow.rating,
             is_custom: true,
+            is_hero: Boolean(newShow.isHero),
           });
           if (dbError) {
-            console.warn("[Catalog] Remote insert notice:", dbError.message);
-            remoteError = dbError.message;
+            if (dbError.message.includes("is_hero")) {
+              const { error: retryErr } = await dynamicDb.from("shows").insert({
+                id: newShow.id,
+                title: newShow.title,
+                genre: newShow.genre,
+                image: newShow.image,
+                episodes: newShow.episodes,
+                badge: newShow.badge ?? null,
+                description: newShow.description,
+                rating: newShow.rating,
+                is_custom: true,
+              });
+              if (!retryErr) {
+                remoteSaved = true;
+              } else {
+                remoteError = retryErr.message;
+              }
+            } else {
+              console.warn("[Catalog] Remote insert notice:", dbError.message);
+              remoteError = dbError.message;
+            }
           } else {
             remoteSaved = true;
           }
@@ -499,6 +521,45 @@ export const catalogApi = {
         err instanceof Error ? err : new Error("Failed to delete show.");
       return { success: false, error };
     }
+  },
+
+  /**
+   * Toggles whether a show is featured in the top hero carousel.
+   */
+  toggleHero: async (
+    id: string,
+  ): Promise<{ success: boolean; isHero: boolean }> => {
+    const show = currentShows.find((s) => s.id === id);
+    if (!show) return { success: false, isHero: false };
+    const nextIsHero = !show.isHero;
+    show.isHero = nextIsHero;
+
+    // Persist in localStorage and IndexedDB
+    const local = getLocalCustomShows();
+    const target = local.find((s) => s.id === id);
+    if (target) {
+      target.isHero = nextIsHero;
+      setLocalCustomShows(local);
+    }
+    notifyListeners();
+
+    // Persist in Supabase if custom show and configured
+    if (isSupabaseConfigured() && show.isCustom) {
+      try {
+        await (
+          dynamicDb.from("shows") as unknown as {
+            update: (v: Record<string, unknown>) => {
+              eq: (c: string, val: unknown) => PromiseLike<unknown>;
+            };
+          }
+        )
+          .update({ is_hero: nextIsHero })
+          .eq("id", id);
+      } catch (e) {
+        console.warn("[Catalog] toggleHero remote update notice:", e);
+      }
+    }
+    return { success: true, isHero: nextIsHero };
   },
 };
 

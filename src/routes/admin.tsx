@@ -75,6 +75,7 @@ create table if not exists public.shows (
   description text,
   rating text default '4.8',
   is_custom boolean default true,
+  is_hero boolean default false,
   created_at timestamp with time zone default timezone('utc'::text, now())
 );
 
@@ -85,9 +86,12 @@ alter table public.shows enable row level security;
 create policy "Public shows read" on public.shows
   for select using (true);
 
--- Anyone with the client key can insert/delete (or restrict by auth.uid())
+-- Anyone with the client key can insert, update, or delete
 create policy "Allow insert on shows" on public.shows
   for insert with check (true);
+
+create policy "Allow update on shows" on public.shows
+  for update using (true);
 
 create policy "Allow delete on shows" on public.shows
   for delete using (true);
@@ -119,6 +123,7 @@ function AdminPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isHero, setIsHero] = useState(false);
   const [lastPublishedId, setLastPublishedId] = useState<string | null>(null);
 
   // Catalog Manager State
@@ -280,6 +285,7 @@ function AdminPage() {
           description:
             description.trim() || "A captivating short drama on Tadka4U.",
           rating: rating.trim() || "4.8",
+          isHero,
         },
         selectedFile,
       );
@@ -291,13 +297,15 @@ function AdminPage() {
 
       if (remoteSaved) {
         toast.success(`"${show.title}" published to cloud!`, {
-          description:
-            "Synced with Supabase. Live for all end users on https://tadka4u.vercel.app.",
+          description: isHero
+            ? "Synced to cloud & featured in Top Hero Carousel for all users!"
+            : "Synced with Supabase. Live for all end users on https://tadka4u.vercel.app.",
         });
       } else {
         toast.success(`"${show.title}" published locally!`, {
-          description:
-            "Saved on your device. Run the SQL in the Database tab so all end users see it.",
+          description: isHero
+            ? "Saved on device and added to Hero Carousel. Run SQL in Database tab to sync globally."
+            : "Saved on your device. Run the SQL in the Database tab so all end users see it.",
         });
       }
 
@@ -310,6 +318,7 @@ function AdminPage() {
       setEpisodes("4");
       setRating("4.8");
       setBadge("NEW");
+      setIsHero(false);
     } catch (err) {
       toast.error("An unexpected error occurred while publishing.");
       console.error(err);
@@ -960,6 +969,41 @@ function AdminPage() {
                 />
               </div>
 
+              {/* Feature in Top Hero Carousel Option */}
+              <div
+                onClick={() => setIsHero(!isHero)}
+                className={`p-4 rounded-xl border transition-all cursor-pointer select-none flex items-start gap-3.5 ${
+                  isHero
+                    ? "bg-amber-500/15 border-amber-500/50 shadow-md shadow-amber-500/5"
+                    : "bg-secondary/30 border-border/70 hover:border-border"
+                }`}
+              >
+                <input
+                  type="checkbox"
+                  id="feature-in-hero"
+                  checked={isHero}
+                  onChange={(e) => setIsHero(e.target.checked)}
+                  onClick={(e) => e.stopPropagation()}
+                  className="size-4 rounded border-border text-primary focus:ring-primary accent-primary mt-0.5 cursor-pointer"
+                />
+                <div className="flex-1 space-y-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Sparkles className="size-3.5 text-amber-400" />
+                    <span className="text-xs font-semibold text-foreground">
+                      Feature in Top Front Carousel (Hero Banner)
+                    </span>
+                    <span className="text-[9px] uppercase font-bold px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                      Top Spotlight
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    Check this to showcase this story as the large hero banner
+                    with backdrop and play button at the very top of the
+                    homepage.
+                  </p>
+                </div>
+              </div>
+
               {/* Submit Button */}
               <div className="pt-2 flex flex-col sm:flex-row items-center gap-3">
                 <Button
@@ -1130,6 +1174,12 @@ function AdminPage() {
                               {s.badge}
                             </span>
                           )}
+                          {s.isHero && (
+                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1">
+                              <Sparkles className="size-2.5 text-amber-400" />
+                              IN HERO BANNER
+                            </span>
+                          )}
                           {s.isCustom ? (
                             <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/30">
                               Custom Published
@@ -1157,7 +1207,29 @@ function AdminPage() {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 self-end sm:self-auto">
+                    <div className="flex items-center gap-2 self-end sm:self-auto flex-wrap">
+                      <Button
+                        variant={s.isHero ? "cinema" : "outline"}
+                        size="sm"
+                        onClick={async () => {
+                          const res = await catalogApi.toggleHero(s.id);
+                          toast.success(
+                            res.isHero
+                              ? `"${s.title}" will now pop on the Top Hero Carousel!`
+                              : `"${s.title}" removed from Hero Carousel.`,
+                          );
+                        }}
+                        className="text-xs h-8 gap-1.5"
+                        title={
+                          s.isHero
+                            ? "Currently displayed in top hero carousel. Click to remove."
+                            : "Click to feature this show in the top hero carousel on homepage."
+                        }
+                      >
+                        <Sparkles className="size-3 text-amber-300" />
+                        {s.isHero ? "In Hero Banner" : "Pop on Hero"}
+                      </Button>
+
                       <Button
                         variant="ghost"
                         size="sm"

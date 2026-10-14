@@ -17,6 +17,7 @@ export type Show = {
   description: string;
   rating: string;
   isCustom?: boolean | undefined;
+  isHero?: boolean | undefined;
   createdAt?: string | undefined;
 };
 export const shows: Show[] = [
@@ -127,7 +128,7 @@ export const genres = [
 export function filterShows(list: Show[], genre: string, search = "") {
   return list.filter(
     (s) =>
-      (genre === "All" || s.genre === genre) &&
+      (genre === "All" || s.genre.toLowerCase() === genre.toLowerCase()) &&
       s.title.toLowerCase().includes(search.toLowerCase().trim()),
   );
 }

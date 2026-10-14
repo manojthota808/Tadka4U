@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Play,
   Plus,
@@ -20,7 +20,7 @@ import {
   useAccount,
   pageHead,
 } from "@/frontend";
-import { useShows, genres, filterShows } from "@/api";
+import { useShows, genres, filterShows, type Show } from "@/api";
 
 export const Route = createFileRoute("/")({
   head: () =>
@@ -31,24 +31,86 @@ export const Route = createFileRoute("/")({
   component: Index,
 });
 
-const HERO_INDICES = [0, 2, 5];
-
 function Index() {
   const [genre, setGenre] = useState("All");
   const [featured, setFeatured] = useState(0);
   const { saved, toggle } = useAccount();
   const shows = useShows();
-  const customShows = shows.filter((s) => s.isCustom);
 
-  const hero = shows.at(HERO_INDICES.at(featured) ?? 0);
-  const topPicks = [5, 1, 7, 3, 6].flatMap((i) => (shows[i] ? [shows[i]] : []));
+  // Top Front Carousel items:
+  // Shows explicitly marked as isHero (from admin), plus default curated originals
+  const heroShows = useMemo(() => {
+    const customHeroShows = shows.filter((s) => s.isHero);
+    const defaultHeroIds = [
+      "midnight-promise",
+      "the-last-alibi",
+      "royal-hearts",
+    ];
+    const defaultHeroShows = defaultHeroIds
+      .map((id) => shows.find((s) => s.id === id))
+      .filter((s): s is Show => Boolean(s));
+
+    // Combine custom hero picks first, then defaults, avoiding duplicates
+    const seen = new Set<string>();
+    const list: Show[] = [];
+    for (const item of [...customHeroShows, ...defaultHeroShows]) {
+      if (!seen.has(item.id)) {
+        seen.add(item.id);
+        list.push(item);
+      }
+    }
+    return list.length > 0 ? list : shows.slice(0, 3);
+  }, [shows]);
+
+  const hero = heroShows[featured % heroShows.length] ?? heroShows[0];
 
   useEffect(() => {
+    if (heroShows.length <= 1) return;
     const timer = setInterval(() => {
-      setFeatured((prev) => (prev + 1) % HERO_INDICES.length);
-    }, 3500);
+      setFeatured((prev) => (prev + 1) % heroShows.length);
+    }, 4000);
     return () => clearInterval(timer);
-  }, []);
+  }, [heroShows.length]);
+
+  // Strict genre-filtered lists: a show only appears in its assigned genre!
+  const romanceShows = useMemo(
+    () => shows.filter((s) => s.genre.toLowerCase() === "romance"),
+    [shows],
+  );
+  const thrillerShows = useMemo(
+    () => shows.filter((s) => s.genre.toLowerCase() === "thriller"),
+    [shows],
+  );
+  const dramaShows = useMemo(
+    () => shows.filter((s) => s.genre.toLowerCase() === "drama"),
+    [shows],
+  );
+  const comedyShows = useMemo(
+    () => shows.filter((s) => s.genre.toLowerCase() === "comedy"),
+    [shows],
+  );
+  const horrorShows = useMemo(
+    () => shows.filter((s) => s.genre.toLowerCase() === "horror"),
+    [shows],
+  );
+
+  // Must-Watch Top Picks (highest rated)
+  const topPicks = useMemo(
+    () =>
+      [...shows]
+        .sort((a, b) => Number(b.rating || 0) - Number(a.rating || 0))
+        .slice(0, 8),
+    [shows],
+  );
+
+  // Fresh releases (new episodes or custom additions)
+  const freshShows = useMemo(
+    () =>
+      shows
+        .filter((s) => s.isCustom || s.badge?.toLowerCase().includes("new"))
+        .slice(0, 8),
+    [shows],
+  );
 
   if (!hero) return null;
   const titleParts = hero.title.split(" ");
@@ -125,14 +187,14 @@ function Index() {
             role="tablist"
             aria-label="Featured stories"
           >
-            {HERO_INDICES.map((idx, i) => (
+            {heroShows.map((hShow, i) => (
               <Button
                 variant="ghost"
-                key={idx}
+                key={hShow.id}
                 role="tab"
-                aria-selected={i === featured}
-                aria-label={`Featured show ${i + 1}`}
-                className={i === featured ? "selected" : ""}
+                aria-selected={i === featured % heroShows.length}
+                aria-label={`Featured show ${i + 1}: ${hShow.title}`}
+                className={i === featured % heroShows.length ? "selected" : ""}
                 onClick={() => setFeatured(i)}
               />
             ))}
@@ -158,62 +220,116 @@ function Index() {
             </Button>
           </div>
           <ShelfCoordinator>
-            {customShows.length > 0 && (
+            {/* If user clicked a specific genre tab, show that genre's stories first */}
+            {genre !== "All" && (
               <Shelf
-                id="shelf-new-releases"
-                title="Newly Published Releases"
-                subtitle="Fresh titles added to the Tadka4U streaming catalog."
-                icon={
-                  <Sparkles className="size-5 text-primary fill-primary/20" />
-                }
-                items={customShows}
+                id="shelf-genre-selected"
+                title={`${genre} Stories`}
+                subtitle={`Browse all short dramas in ${genre}.`}
+                icon={<Flame className="size-5 text-primary fill-primary/20" />}
+                items={filterShows(shows, genre)}
               />
             )}
-            <Shelf
-              id="shelf-trending"
-              title={genre === "All" ? "Trending now" : `${genre} picks`}
-              icon={
-                <Flame className="size-5 text-amber-500 fill-amber-500/20" />
-              }
-              items={filterShows(shows, genre).slice(0, 6)}
-            />
-            <Shelf
-              id="shelf-top-picks"
-              title="Must-Watch"
-              subtitle="The stories you won’t want to put down."
-              icon={<Star className="size-5 text-amber-400 fill-amber-400" />}
-              items={topPicks}
-              ranked
-            />
-            <Shelf
-              id="shelf-fresh"
-              title="Fresh off the reel"
-              subtitle="New episodes and latest releases."
-              icon={
-                <Sparkles className="size-5 text-sky-400 fill-sky-400/20" />
-              }
-              items={[6, 7, 8, 4, 2, 0].flatMap((i) =>
-                shows[i] ? [shows[i]] : [],
-              )}
-            />
-            <Shelf
-              id="shelf-romance"
-              title="Love Stories"
-              subtitle="Passionate love stories and heartfelt connections."
-              icon={<Heart className="size-5 text-rose-500 fill-rose-500/20" />}
-              items={[0, 5, 7, 2, 8, 4].flatMap((i) =>
-                shows[i] ? [shows[i]] : [],
-              )}
-            />
-            <Shelf
-              id="shelf-thrillers"
-              title="Edge of your seat"
-              subtitle="High stakes, dark mysteries, and nail-biting suspense."
-              icon={<Zap className="size-5 text-amber-400 fill-amber-400/20" />}
-              items={[1, 6, 3, 2, 0, 7].flatMap((i) =>
-                shows[i] ? [shows[i]] : [],
-              )}
-            />
+
+            {/* Trending Shelf (when 'All' is selected) */}
+            {genre === "All" && (
+              <Shelf
+                id="shelf-trending"
+                title="Trending now"
+                icon={
+                  <Flame className="size-5 text-amber-500 fill-amber-500/20" />
+                }
+                items={shows.slice(0, 8)}
+              />
+            )}
+
+            {/* Must-Watch Top Picks */}
+            {topPicks.length > 0 && (
+              <Shelf
+                id="shelf-top-picks"
+                title="Must-Watch"
+                subtitle="Top rated stories you won’t want to put down."
+                icon={<Star className="size-5 text-amber-400 fill-amber-400" />}
+                items={topPicks}
+                ranked
+              />
+            )}
+
+            {/* Romance Stories (STRICTLY Romance genre only) */}
+            {romanceShows.length > 0 && (
+              <Shelf
+                id="shelf-romance"
+                title="Love Stories"
+                subtitle="Passionate romance, deep connections, and emotional journeys."
+                icon={
+                  <Heart className="size-5 text-rose-500 fill-rose-500/20" />
+                }
+                items={romanceShows}
+              />
+            )}
+
+            {/* Thriller Stories (STRICTLY Thriller genre only) */}
+            {thrillerShows.length > 0 && (
+              <Shelf
+                id="shelf-thrillers"
+                title="Edge of your seat"
+                subtitle="High stakes, dark mysteries, and nail-biting suspense."
+                icon={
+                  <Zap className="size-5 text-amber-400 fill-amber-400/20" />
+                }
+                items={thrillerShows}
+              />
+            )}
+
+            {/* Drama Stories (STRICTLY Drama genre only) */}
+            {dramaShows.length > 0 && (
+              <Shelf
+                id="shelf-drama"
+                title="Royal & Drama Secrets"
+                subtitle="Family sagas, intense rivalries, and royal secrets."
+                icon={
+                  <Sparkles className="size-5 text-purple-400 fill-purple-400/20" />
+                }
+                items={dramaShows}
+              />
+            )}
+
+            {/* Comedy Stories (STRICTLY Comedy genre only) */}
+            {comedyShows.length > 0 && (
+              <Shelf
+                id="shelf-comedy"
+                title="Binge Laughs"
+                subtitle="Lighthearted humor, relatable chaos, and fun drama."
+                icon={
+                  <Sparkles className="size-5 text-amber-400 fill-amber-400/20" />
+                }
+                items={comedyShows}
+              />
+            )}
+
+            {/* Horror Stories (STRICTLY Horror genre only) */}
+            {horrorShows.length > 0 && (
+              <Shelf
+                id="shelf-horror"
+                title="Dark & Paranormal"
+                subtitle="Chilling mysteries and haunted ancestral tales."
+                icon={<Zap className="size-5 text-red-500 fill-red-500/20" />}
+                items={horrorShows}
+              />
+            )}
+
+            {/* Fresh off the reel */}
+            {freshShows.length > 0 && (
+              <Shelf
+                id="shelf-fresh"
+                title="Fresh off the reel"
+                subtitle="New episodes and latest releases."
+                icon={
+                  <Sparkles className="size-5 text-sky-400 fill-sky-400/20" />
+                }
+                items={freshShows}
+              />
+            )}
           </ShelfCoordinator>
           <AppBand />
         </div>
