@@ -30,6 +30,9 @@ import {
   AlertCircle,
   RefreshCw,
   X,
+  Heart,
+  Zap,
+  Flame,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageLayout, pageHead, compressImageFile } from "@/frontend";
@@ -45,6 +48,84 @@ export const Route = createFileRoute("/admin")({
   component: AdminPage,
 });
 
+interface ShelfMapping {
+  genre: string;
+  shelfTitle: string;
+  tag: string;
+  badgeHint: string;
+  description: string;
+}
+
+const SHELF_MAPPINGS: ShelfMapping[] = [
+  {
+    genre: "Thriller",
+    shelfTitle: "Edge of your seat",
+    tag: "THRILLER",
+    badgeHint: "NEW / THRILLER",
+    description: "High stakes, dark mysteries, and nail-biting suspense.",
+  },
+  {
+    genre: "Romance",
+    shelfTitle: "Love Stories",
+    tag: "ROMANCE",
+    badgeHint: "POPULAR / ROMANCE",
+    description:
+      "Passionate romance, deep connections, and emotional journeys.",
+  },
+  {
+    genre: "Drama",
+    shelfTitle: "Royal & Drama Secrets",
+    tag: "DRAMA",
+    badgeHint: "EXCLUSIVE / DRAMA",
+    description: "Family sagas, intense rivalries, and royal secrets.",
+  },
+  {
+    genre: "Comedy",
+    shelfTitle: "Binge Laughs",
+    tag: "COMEDY",
+    badgeHint: "FUN / COMEDY",
+    description: "Lighthearted humor, relatable chaos, and fun drama.",
+  },
+  {
+    genre: "Horror",
+    shelfTitle: "Dark & Paranormal",
+    tag: "HORROR",
+    badgeHint: "CHILLING / HORROR",
+    description: "Chilling mysteries and haunted ancestral tales.",
+  },
+  {
+    genre: "Action",
+    shelfTitle: "Trending & Action",
+    tag: "ACTION",
+    badgeHint: "HIT / ACTION",
+    description: "High-octane excitement and hero adventures.",
+  },
+  {
+    genre: "Mystery",
+    shelfTitle: "Edge of your seat",
+    tag: "MYSTERY",
+    badgeHint: "PUZZLE / MYSTERY",
+    description: "Intriguing whodunits and detective puzzles.",
+  },
+];
+
+const PRESET_GENRES = SHELF_MAPPINGS.map((m) => m.genre);
+
+function getShelfMapping(genreName: string): ShelfMapping {
+  const normalized = (genreName || "").trim().toLowerCase();
+  const found = SHELF_MAPPINGS.find(
+    (m) => m.genre.toLowerCase() === normalized,
+  );
+  if (found) return found;
+  return {
+    genre: genreName || "Custom",
+    shelfTitle: `${genreName || "Custom"} Stories`,
+    tag: (genreName || "CUSTOM").toUpperCase(),
+    badgeHint: "NEW",
+    description: `Short dramas filed under ${genreName || "custom category"}.`,
+  };
+}
+
 const QUICK_BADGES = [
   "NEW",
   "TRENDING",
@@ -52,16 +133,6 @@ const QUICK_BADGES = [
   "EXCLUSIVE",
   "ORIGINAL",
   "POPULAR",
-];
-
-const PRESET_GENRES = [
-  "Romance",
-  "Thriller",
-  "Drama",
-  "Horror",
-  "Comedy",
-  "Action",
-  "Mystery",
 ];
 
 const SUPABASE_SQL_SNIPPET = `-- Run this in your Supabase SQL Editor to enable persistent cloud sync
@@ -132,6 +203,9 @@ function AdminPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isHero, setIsHero] = useState(false);
   const [lastPublishedId, setLastPublishedId] = useState<string | null>(null);
+
+  const effectiveGenre = isCustomGenre ? customGenre : genre;
+  const currentShelf = getShelfMapping(effectiveGenre);
 
   // Catalog Manager State
   const [catalogSearch, setCatalogSearch] = useState("");
@@ -829,8 +903,11 @@ function AdminPage() {
               {/* Genre & Custom Genre */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-foreground">
-                    Genre *
+                  <label className="text-xs font-semibold text-foreground flex items-center justify-between">
+                    <span>Genre & Shelf *</span>
+                    <span className="text-[10px] text-muted-foreground font-normal">
+                      Maps to Homepage Shelf
+                    </span>
                   </label>
                   <select
                     value={isCustomGenre ? "other" : genre}
@@ -844,13 +921,13 @@ function AdminPage() {
                     }}
                     className="w-full bg-secondary/40 border border-border rounded-xl px-4 py-2.5 text-sm text-foreground focus:outline-none focus:border-primary transition-colors"
                   >
-                    {PRESET_GENRES.map((g) => (
+                    {SHELF_MAPPINGS.map((m) => (
                       <option
-                        key={g}
-                        value={g}
+                        key={m.genre}
+                        value={m.genre}
                         className="bg-card text-foreground"
                       >
-                        {g}
+                        {m.genre} ➔ Shelf: "{m.shelfTitle}" [{m.tag}]
                       </option>
                     ))}
                     <option value="other" className="bg-card text-foreground">
@@ -890,6 +967,28 @@ function AdminPage() {
                     </div>
                   </div>
                 )}
+
+                {/* Dynamic Target Shelf Indicator */}
+                <div className="sm:col-span-2 p-3 rounded-xl bg-secondary/40 border border-border/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground flex items-center gap-1">
+                      🎯 <span>Target Homepage Shelf:</span>
+                    </span>
+                    <strong className="text-xs text-foreground font-semibold">
+                      "{currentShelf.shelfTitle}"
+                    </strong>
+                  </div>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-primary/15 text-primary border border-primary/30">
+                      Shelf Tag: {currentShelf.tag}
+                    </span>
+                    {currentShelf.genre === "Thriller" && (
+                      <span className="text-[10px] text-amber-300 font-semibold">
+                        (Edge of your seat)
+                      </span>
+                    )}
+                  </div>
+                </div>
               </div>
 
               {/* Episodes & Badge */}
@@ -952,6 +1051,53 @@ function AdminPage() {
                     }`}
                   >
                     Clear Badge
+                  </button>
+                </div>
+              </div>
+
+              {/* "Fresh off the reel" Shelf Identifier & Action */}
+              <div className="p-3.5 rounded-xl bg-sky-500/10 border border-sky-500/25 space-y-2 text-xs text-sky-200">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="font-semibold text-white flex items-center gap-1.5">
+                    <Sparkles className="size-4 text-sky-400" />
+                    <span>Targeting "Fresh off the reel" Shelf:</span>
+                  </div>
+                  <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-500/40 uppercase">
+                    Shelf Tag: NEW RELEASES
+                  </span>
+                </div>
+                <p className="text-[11px] text-sky-200/80 leading-relaxed">
+                  The <strong>"Fresh off the reel"</strong> shelf features new
+                  releases. Any newly published show or show with badge{" "}
+                  <strong className="text-white font-mono">NEW</strong> or{" "}
+                  <strong className="text-white font-mono">NEW EPISODES</strong>{" "}
+                  automatically appears on this shelf!
+                </p>
+                <div className="flex items-center gap-2 pt-0.5 flex-wrap">
+                  <span className="text-[10px] text-sky-300/80">
+                    1-Click Apply:
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setBadge("NEW")}
+                    className={`px-2 py-0.5 rounded-md text-[10px] font-bold border transition-colors ${
+                      badge === "NEW"
+                        ? "bg-sky-500 text-white border-sky-400 shadow-sm"
+                        : "bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 border-sky-500/30"
+                    }`}
+                  >
+                    Badge = NEW ➔ "Fresh off the reel"
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setBadge("NEW EPISODES")}
+                    className={`px-2 py-0.5 rounded-md text-[10px] font-bold border transition-colors ${
+                      badge === "NEW EPISODES"
+                        ? "bg-sky-500 text-white border-sky-400 shadow-sm"
+                        : "bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 border-sky-500/30"
+                    }`}
+                  >
+                    Badge = NEW EPISODES
                   </button>
                 </div>
               </div>
@@ -1122,13 +1268,202 @@ function AdminPage() {
                   </div>
                 </div>
 
-                <div className="mt-5 p-3 rounded-xl bg-secondary/30 border border-border/40 text-[11px] text-muted-foreground leading-relaxed flex items-start gap-2">
+                {/* Live Shelf Placement Summary */}
+                <div className="mt-4 p-3.5 rounded-xl bg-secondary/30 border border-border/50 text-[11px] text-muted-foreground space-y-2 text-left">
+                  <div className="font-semibold text-foreground flex items-center justify-between text-xs">
+                    <span className="flex items-center gap-1.5">
+                      <CheckCircle2 className="size-3.5 text-emerald-400" />
+                      <span>Live Homepage Placement:</span>
+                    </span>
+                    <span className="text-[10px] text-muted-foreground font-normal">
+                      Instant sync
+                    </span>
+                  </div>
+                  <div className="flex flex-col gap-1.5 pt-0.5">
+                    <div className="flex items-center justify-between text-[11px] bg-card/70 p-2 rounded-lg border border-border/40">
+                      <span className="text-foreground">
+                        Shelf: <strong>"{currentShelf.shelfTitle}"</strong>
+                      </span>
+                      <span className="text-[9px] font-bold uppercase px-2 py-0.5 rounded-full bg-primary/15 text-primary border border-primary/25">
+                        {currentShelf.tag}
+                      </span>
+                    </div>
+                    {(badge?.toUpperCase().includes("NEW") || !badge) && (
+                      <div className="flex items-center justify-between text-[11px] text-sky-300 bg-sky-500/10 p-2 rounded-lg border border-sky-500/20">
+                        <span>
+                          Shelf: <strong>"Fresh off the reel"</strong>
+                        </span>
+                        <span className="text-[9px] font-bold uppercase px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-500/30">
+                          NEW RELEASES
+                        </span>
+                      </div>
+                    )}
+                    {isHero && (
+                      <div className="flex items-center justify-between text-[11px] text-amber-300 bg-amber-500/10 p-2 rounded-lg border border-amber-500/20">
+                        <span>
+                          Top Spotlight: <strong>Hero Carousel</strong>
+                        </span>
+                        <span className="text-[9px] font-bold uppercase px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                          HERO BANNER
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="mt-4 p-3 rounded-xl bg-secondary/30 border border-border/40 text-[11px] text-muted-foreground leading-relaxed flex items-start gap-2">
                   <CheckCircle2 className="size-4 text-emerald-400 flex-shrink-0 mt-0.5" />
                   <span>
                     When published, this title is added to the catalog and
                     appears on the <strong>Home</strong> and{" "}
                     <strong>Explore</strong> screens instantly.
                   </span>
+                </div>
+              </div>
+
+              {/* Shelf & Tag Directory Reference Guide */}
+              <div className="bg-card border border-border/70 rounded-2xl p-5 shadow-xl space-y-3.5">
+                <div className="flex items-center justify-between pb-2.5 border-b border-border/50">
+                  <h3 className="text-sm font-semibold flex items-center gap-2">
+                    <Layers className="size-4 text-primary" />
+                    Homepage Shelves & Tag Guide
+                  </h3>
+                  <span className="text-[10px] font-bold text-primary uppercase">
+                    Directory
+                  </span>
+                </div>
+                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                  Refer to this guide to know exactly which genre or badge puts
+                  your story on each homepage shelf:
+                </p>
+
+                <div className="space-y-2 text-xs">
+                  {/* Fresh off the reel */}
+                  <div className="p-2.5 rounded-xl bg-sky-500/10 border border-sky-500/25 flex items-center justify-between gap-2">
+                    <div>
+                      <div className="font-semibold text-white flex items-center gap-1.5">
+                        <Sparkles className="size-3.5 text-sky-400" />
+                        Fresh off the reel
+                      </div>
+                      <div className="text-[10px] text-sky-200/80 mt-0.5">
+                        Set Badge to{" "}
+                        <code className="text-white font-mono bg-sky-500/30 px-1 py-0.2 rounded">
+                          NEW
+                        </code>{" "}
+                        or{" "}
+                        <code className="text-white font-mono bg-sky-500/30 px-1 py-0.2 rounded">
+                          NEW EPISODES
+                        </code>
+                      </div>
+                    </div>
+                    <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-500/30 uppercase flex-shrink-0">
+                      NEW RELEASES
+                    </span>
+                  </div>
+
+                  {/* Edge of your seat */}
+                  <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/25 flex items-center justify-between gap-2">
+                    <div>
+                      <div className="font-semibold text-white flex items-center gap-1.5">
+                        <Zap className="size-3.5 text-amber-400" />
+                        Edge of your seat
+                      </div>
+                      <div className="text-[10px] text-amber-200/80 mt-0.5">
+                        Select Genre:{" "}
+                        <strong className="text-white">Thriller</strong>
+                      </div>
+                    </div>
+                    <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 uppercase flex-shrink-0">
+                      THRILLER
+                    </span>
+                  </div>
+
+                  {/* Love Stories */}
+                  <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/25 flex items-center justify-between gap-2">
+                    <div>
+                      <div className="font-semibold text-white flex items-center gap-1.5">
+                        <Heart className="size-3.5 text-rose-400" />
+                        Love Stories
+                      </div>
+                      <div className="text-[10px] text-rose-200/80 mt-0.5">
+                        Select Genre:{" "}
+                        <strong className="text-white">Romance</strong>
+                      </div>
+                    </div>
+                    <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30 uppercase flex-shrink-0">
+                      ROMANCE
+                    </span>
+                  </div>
+
+                  {/* Royal & Drama Secrets */}
+                  <div className="p-2.5 rounded-xl bg-purple-500/10 border border-purple-500/25 flex items-center justify-between gap-2">
+                    <div>
+                      <div className="font-semibold text-white flex items-center gap-1.5">
+                        <Sparkles className="size-3.5 text-purple-400" />
+                        Royal & Drama Secrets
+                      </div>
+                      <div className="text-[10px] text-purple-200/80 mt-0.5">
+                        Select Genre:{" "}
+                        <strong className="text-white">Drama</strong>
+                      </div>
+                    </div>
+                    <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30 uppercase flex-shrink-0">
+                      DRAMA
+                    </span>
+                  </div>
+
+                  {/* Binge Laughs */}
+                  <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-between gap-2">
+                    <div>
+                      <div className="font-semibold text-white flex items-center gap-1.5">
+                        <Sparkles className="size-3.5 text-emerald-400" />
+                        Binge Laughs
+                      </div>
+                      <div className="text-[10px] text-emerald-200/80 mt-0.5">
+                        Select Genre:{" "}
+                        <strong className="text-white">Comedy</strong>
+                      </div>
+                    </div>
+                    <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 uppercase flex-shrink-0">
+                      COMEDY
+                    </span>
+                  </div>
+
+                  {/* Dark & Paranormal */}
+                  <div className="p-2.5 rounded-xl bg-red-500/10 border border-red-500/25 flex items-center justify-between gap-2">
+                    <div>
+                      <div className="font-semibold text-white flex items-center gap-1.5">
+                        <Zap className="size-3.5 text-red-400" />
+                        Dark & Paranormal
+                      </div>
+                      <div className="text-[10px] text-red-200/80 mt-0.5">
+                        Select Genre:{" "}
+                        <strong className="text-white">Horror</strong>
+                      </div>
+                    </div>
+                    <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-red-500/20 text-red-300 border border-red-500/30 uppercase flex-shrink-0">
+                      HORROR
+                    </span>
+                  </div>
+
+                  {/* Top Front Hero Carousel */}
+                  <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/25 flex items-center justify-between gap-2">
+                    <div>
+                      <div className="font-semibold text-white flex items-center gap-1.5">
+                        <Star className="size-3.5 text-amber-400" />
+                        Top Front Spotlight
+                      </div>
+                      <div className="text-[10px] text-amber-200/80 mt-0.5">
+                        Check{" "}
+                        <strong className="text-white">
+                          "Feature in Top Front Carousel"
+                        </strong>
+                      </div>
+                    </div>
+                    <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 uppercase flex-shrink-0">
+                      HERO BANNER
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1197,8 +1532,20 @@ function AdminPage() {
                             </span>
                           )}
                         </div>
-                        <div className="text-xs text-muted-foreground flex items-center gap-2.5 mt-1">
-                          <span>{s.genre}</span>
+                        <div className="text-xs text-muted-foreground flex items-center gap-2 mt-1.5 flex-wrap">
+                          <span className="font-semibold text-foreground">
+                            {s.genre}
+                          </span>
+                          <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+                            Shelf: "{getShelfMapping(s.genre).shelfTitle}" [
+                            {getShelfMapping(s.genre).tag}]
+                          </span>
+                          {(s.isCustom ||
+                            s.badge?.toLowerCase().includes("new")) && (
+                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-400 border border-sky-500/25">
+                              Shelf: "Fresh off the reel"
+                            </span>
+                          )}
                           <span>·</span>
                           <span className="flex items-center gap-1 text-amber-400">
                             <Star className="size-3 fill-amber-400" />

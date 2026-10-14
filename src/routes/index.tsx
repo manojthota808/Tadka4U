@@ -225,6 +225,7 @@ function Index() {
               <Shelf
                 id="shelf-genre-selected"
                 title={`${genre} Stories`}
+                tag={genre.toUpperCase()}
                 subtitle={`Browse all short dramas in ${genre}.`}
                 icon={<Flame className="size-5 text-primary fill-primary/20" />}
                 items={filterShows(shows, genre)}
@@ -236,6 +237,7 @@ function Index() {
               <Shelf
                 id="shelf-trending"
                 title="Trending now"
+                tag="TRENDING"
                 icon={
                   <Flame className="size-5 text-amber-500 fill-amber-500/20" />
                 }
@@ -248,6 +250,7 @@ function Index() {
               <Shelf
                 id="shelf-top-picks"
                 title="Must-Watch"
+                tag="TOP RATED"
                 subtitle="Top rated stories you won’t want to put down."
                 icon={<Star className="size-5 text-amber-400 fill-amber-400" />}
                 items={topPicks}
@@ -260,6 +263,7 @@ function Index() {
               <Shelf
                 id="shelf-romance"
                 title="Love Stories"
+                tag="ROMANCE"
                 subtitle="Passionate romance, deep connections, and emotional journeys."
                 icon={
                   <Heart className="size-5 text-rose-500 fill-rose-500/20" />
@@ -273,6 +277,7 @@ function Index() {
               <Shelf
                 id="shelf-thrillers"
                 title="Edge of your seat"
+                tag="THRILLER"
                 subtitle="High stakes, dark mysteries, and nail-biting suspense."
                 icon={
                   <Zap className="size-5 text-amber-400 fill-amber-400/20" />
@@ -286,6 +291,7 @@ function Index() {
               <Shelf
                 id="shelf-drama"
                 title="Royal & Drama Secrets"
+                tag="DRAMA"
                 subtitle="Family sagas, intense rivalries, and royal secrets."
                 icon={
                   <Sparkles className="size-5 text-purple-400 fill-purple-400/20" />
@@ -299,6 +305,7 @@ function Index() {
               <Shelf
                 id="shelf-comedy"
                 title="Binge Laughs"
+                tag="COMEDY"
                 subtitle="Lighthearted humor, relatable chaos, and fun drama."
                 icon={
                   <Sparkles className="size-5 text-amber-400 fill-amber-400/20" />
@@ -312,6 +319,7 @@ function Index() {
               <Shelf
                 id="shelf-horror"
                 title="Dark & Paranormal"
+                tag="HORROR"
                 subtitle="Chilling mysteries and haunted ancestral tales."
                 icon={<Zap className="size-5 text-red-500 fill-red-500/20" />}
                 items={horrorShows}
@@ -323,6 +331,7 @@ function Index() {
               <Shelf
                 id="shelf-fresh"
                 title="Fresh off the reel"
+                tag="NEW RELEASES"
                 subtitle="New episodes and latest releases."
                 icon={
                   <Sparkles className="size-5 text-sky-400 fill-sky-400/20" />

@@ -18,6 +18,7 @@ import { Poster } from "./Poster";
 export interface ShelfProps {
   id?: string;
   title: string;
+  tag?: string;
   icon?: ReactNode;
   items?: Show[];
   subtitle?: string;
@@ -29,6 +30,7 @@ export interface ShelfProps {
 export function Shelf({
   id: propId,
   title,
+  tag,
   icon,
   items = shows.slice(0, 6),
   subtitle,
@@ -122,7 +124,12 @@ export function Shelf({
         <div>
           <h2>
             {icon}
-            {title}
+            <span>{title}</span>
+            {tag && (
+              <span className="text-[10px] font-bold tracking-wider uppercase px-2 py-0.5 rounded-full bg-primary/15 text-primary border border-primary/30 inline-flex items-center select-none">
+                {tag}
+              </span>
+            )}
             {coordinator.isCoordinated && isActive && (
               <span
                 className="shelf-active-badge"
