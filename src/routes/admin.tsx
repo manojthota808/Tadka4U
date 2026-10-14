@@ -65,6 +65,7 @@ const PRESET_GENRES = [
 ];
 
 const SUPABASE_SQL_SNIPPET = `-- Run this in your Supabase SQL Editor to enable persistent cloud sync
+-- 1. Create shows table if it doesn't exist
 create table if not exists public.shows (
   id text primary key,
   title text not null,
@@ -79,20 +80,26 @@ create table if not exists public.shows (
   created_at timestamp with time zone default timezone('utc'::text, now())
 );
 
--- Row Level Security policies
+-- 2. Add is_hero column if table already existed without it
+alter table public.shows add column if not exists is_hero boolean default false;
+
+-- 3. Enable Row Level Security
 alter table public.shows enable row level security;
 
--- Anyone can browse shows
+-- 4. Re-create policies safely (drop if exists prevents ERROR 42710)
+drop policy if exists "Public shows read" on public.shows;
 create policy "Public shows read" on public.shows
   for select using (true);
 
--- Anyone with the client key can insert, update, or delete
+drop policy if exists "Allow insert on shows" on public.shows;
 create policy "Allow insert on shows" on public.shows
   for insert with check (true);
 
+drop policy if exists "Allow update on shows" on public.shows;
 create policy "Allow update on shows" on public.shows
   for update using (true);
 
+drop policy if exists "Allow delete on shows" on public.shows;
 create policy "Allow delete on shows" on public.shows
   for delete using (true);
 `;
