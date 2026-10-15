@@ -23,11 +23,11 @@ function isSupabaseConfigured(): boolean {
 function withTimeout<T>(
   promise: PromiseLike<T>,
   ms: number = 2500,
-  fallback: T,
+  fallback: unknown,
 ): Promise<T> {
   return Promise.race([
     Promise.resolve(promise),
-    new Promise<T>((resolve) => setTimeout(() => resolve(fallback), ms)),
+    new Promise<T>((resolve) => setTimeout(() => resolve(fallback as T), ms)),
   ]);
 }
 
