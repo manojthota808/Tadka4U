@@ -1605,9 +1605,17 @@ h3 {
   max-width: 1120px;
   margin: 0 auto 36px;
   border-radius: 18px;
-  background: radial-gradient(circle at 50% 0%, rgba(229, 9, 20, 0.14) 0%, transparent 65%), #09090b;
+  background:
+    radial-gradient(
+      circle at 50% 0%,
+      rgba(229, 9, 20, 0.14) 0%,
+      transparent 65%
+    ),
+    #09090b;
   border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow: 0 30px 100px -20px rgba(0, 0, 0, 0.95), 0 0 50px -10px rgba(229, 9, 20, 0.18);
+  box-shadow:
+    0 30px 100px -20px rgba(0, 0, 0, 0.95),
+    0 0 50px -10px rgba(229, 9, 20, 0.18);
   overflow: hidden;
   animation: cinemaTheaterEntrance 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
@@ -1628,7 +1636,11 @@ h3 {
   align-items: center;
   justify-content: space-between;
   padding: 14px 20px;
-  background: linear-gradient(180deg, rgba(18, 18, 22, 0.95) 0%, rgba(10, 10, 14, 0.85) 100%);
+  background: linear-gradient(
+    180deg,
+    rgba(18, 18, 22, 0.95) 0%,
+    rgba(10, 10, 14, 0.85) 100%
+  );
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   backdrop-filter: blur(16px);
   gap: 12px;

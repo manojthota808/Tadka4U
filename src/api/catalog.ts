@@ -8,6 +8,7 @@ import {
 import { supabase } from "./client";
 import type { NewShowInput } from "./types";
 import { triggerNewReleaseNotification } from "@/frontend/components/notifications";
+import { isSafeUrl, sanitizeText, sanitizeStorageSlug } from "@/lib/security";
 
 const CUSTOM_SHOWS_KEY = "tadka4u_custom_shows";
 
@@ -399,22 +400,29 @@ export const catalogApi = {
     remoteError?: string | undefined;
   }> => {
     try {
-      if (!input.title?.trim()) {
+      const cleanTitle = sanitizeText(input.title, 120);
+      const cleanGenre = sanitizeText(input.genre, 50);
+      const cleanDescription = sanitizeText(
+        input.description || "A captivating short drama on Tadka4U.",
+        2000,
+      );
+      const cleanBadge = input.badge
+        ? sanitizeText(input.badge, 30)
+        : undefined;
+      const cleanRating = input.rating ? sanitizeText(input.rating, 10) : "4.8";
+
+      if (!cleanTitle) {
         return { show: null, error: new Error("Show title is required.") };
       }
-      if (!input.genre?.trim()) {
+      if (!cleanGenre) {
         return { show: null, error: new Error("Show genre is required.") };
       }
       if (!input.image?.trim() && !file) {
         return { show: null, error: new Error("A poster image is required.") };
       }
 
-      // Generate a clean URL slug for the ID
-      const baseSlug = input.title
-        .toLowerCase()
-        .trim()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-|-$/g, "");
+      // Generate a clean, path-safe URL slug for the ID
+      const baseSlug = sanitizeStorageSlug(cleanTitle);
       let showId = baseSlug || `show-${Date.now()}`;
 
       // Ensure uniqueness
@@ -422,7 +430,17 @@ export const catalogApi = {
         showId = `${showId}-${Math.random().toString(36).substring(2, 6)}`;
       }
 
-      let finalImageUrl = input.image || "";
+      let finalImageUrl = input.image?.trim() || "";
+
+      // Validate image URL safety
+      if (finalImageUrl && !isSafeUrl(finalImageUrl)) {
+        return {
+          show: null,
+          error: new Error(
+            "Poster image URL must be a valid, secure web URL (https://).",
+          ),
+        };
+      }
 
       // If an image file is provided, attempt Supabase Storage upload
       if (file && isSupabaseConfigured()) {
@@ -449,20 +467,40 @@ export const catalogApi = {
         }
       }
 
+      // Sanitize main video URL
+      const cleanVideoUrl =
+        input.videoUrl && isSafeUrl(input.videoUrl.trim())
+          ? input.videoUrl.trim()
+          : undefined;
+
+      // Sanitize episode videos map: only keep safe URLs
+      let sanitizedEpisodeVideos: Record<number, string> | undefined;
+      if (input.episodeVideos && typeof input.episodeVideos === "object") {
+        sanitizedEpisodeVideos = {};
+        for (const [key, val] of Object.entries(input.episodeVideos)) {
+          const epNum = Number(key);
+          if (epNum > 0 && typeof val === "string" && isSafeUrl(val.trim())) {
+            sanitizedEpisodeVideos[epNum] = val.trim();
+          }
+        }
+        if (Object.keys(sanitizedEpisodeVideos).length === 0) {
+          sanitizedEpisodeVideos = undefined;
+        }
+      }
+
       const newShow: Show = {
         id: showId,
-        title: input.title.trim(),
-        genre: input.genre.trim(),
+        title: cleanTitle,
+        genre: cleanGenre,
         image: finalImageUrl,
         episodes: Math.max(1, Number(input.episodes) || 2),
-        badge: input.badge?.trim() ? input.badge.trim() : undefined,
-        description:
-          input.description?.trim() || "A captivating short drama on Tadka4U.",
-        rating: input.rating?.trim() || "4.8",
+        badge: cleanBadge,
+        description: cleanDescription,
+        rating: cleanRating,
         isCustom: true,
         isHero: Boolean(input.isHero),
-        videoUrl: input.videoUrl?.trim() ? input.videoUrl.trim() : undefined,
-        episodeVideos: input.episodeVideos,
+        videoUrl: cleanVideoUrl,
+        episodeVideos: sanitizedEpisodeVideos,
         createdAt: new Date().toISOString(),
       };
 
@@ -585,6 +623,12 @@ export const catalogApi = {
     id: string,
   ): Promise<{ success: boolean; error: Error | null }> => {
     try {
+      if (!id || typeof id !== "string" || !/^[a-z0-9-_]+$/i.test(id)) {
+        return {
+          success: false,
+          error: new Error("Invalid show identifier format."),
+        };
+      }
       const isSeed = seedShows.some((s) => s.id === id);
       if (isSeed) {
         return {

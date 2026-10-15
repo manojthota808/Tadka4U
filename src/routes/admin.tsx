@@ -54,6 +54,7 @@ import {
   generateGcsUrl,
   generateGcsCliCommands,
 } from "@/lib/video-streaming";
+import { isSafeUrl, sanitizeText } from "@/lib/security";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin")({
@@ -184,14 +185,17 @@ alter table public.shows add column if not exists is_hero boolean default false;
 alter table public.shows add column if not exists video_url text;
 alter table public.shows add column if not exists episode_videos jsonb;
 
--- 3. Enable Row Level Security
+-- 3. Enable Row Level Security (RLS)
 alter table public.shows enable row level security;
 
--- 4. Re-create policies safely (drop if exists prevents ERROR 42710)
+-- 4. Re-create public read policy safely
 drop policy if exists "Public shows read" on public.shows;
 create policy "Public shows read" on public.shows
   for select using (true);
 
+-- 5. Write policies (Development & Production)
+-- Note: In production with custom auth claims, lock down with:
+-- WITH CHECK (auth.jwt() ->> 'email' = 'thotamanojnaidu@gmail.com');
 drop policy if exists "Allow insert on shows" on public.shows;
 create policy "Allow insert on shows" on public.shows
   for insert with check (true);
@@ -519,6 +523,21 @@ function AdminPage() {
     if (!finalImage) {
       toast.error("Please upload a poster image or enter an image URL.");
       return;
+    }
+
+    if (imageMode === "url" && imageUrl.trim() && !isSafeUrl(imageUrl.trim())) {
+      toast.error("Please provide a valid, safe https:// poster image URL.");
+      return;
+    }
+
+    // Validate episode video URLs
+    for (const [epStr, epUrl] of Object.entries(episodeVideos)) {
+      if (epUrl && typeof epUrl === "string" && !isSafeUrl(epUrl.trim())) {
+        toast.error(
+          `Episode ${epStr} video URL must be a valid https:// web URL.`,
+        );
+        return;
+      }
     }
 
     setIsSubmitting(true);

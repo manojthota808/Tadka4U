@@ -20,6 +20,17 @@ function isSupabaseConfigured(): boolean {
   }
 }
 
+function withTimeout<T>(
+  promise: PromiseLike<T>,
+  ms: number = 2500,
+  fallback: T,
+): Promise<T> {
+  return Promise.race([
+    Promise.resolve(promise),
+    new Promise<T>((resolve) => setTimeout(() => resolve(fallback), ms)),
+  ]);
+}
+
 function getStorageKey(userId: string): string {
   return `tadka4u_watchlist_${userId}`;
 }
@@ -60,10 +71,14 @@ export const watchlistApi = {
     }
 
     try {
-      const { data, error } = await supabase
-        .from("watchlist")
-        .select("show_id")
-        .eq("user_id", userId);
+      const { data, error } = await withTimeout(
+        supabase.from("watchlist").select("show_id").eq("user_id", userId),
+        2500,
+        {
+          data: null,
+          error: { message: "Remote fetch timed out, using local storage" },
+        },
+      );
 
       if (error) {
         console.warn(
@@ -102,10 +117,14 @@ export const watchlistApi = {
 
       if (isSupabaseConfigured()) {
         try {
-          const { error } = await supabase.from("watchlist").insert({
-            user_id: userId,
-            show_id: showId,
-          });
+          const { error } = await withTimeout(
+            supabase.from("watchlist").insert({
+              user_id: userId,
+              show_id: showId,
+            }),
+            2500,
+            { error: { message: "Remote insert timed out" } },
+          );
           if (error) {
             console.warn("[Watchlist] Remote insert notice:", error.message);
           }
@@ -140,11 +159,15 @@ export const watchlistApi = {
 
       if (isSupabaseConfigured()) {
         try {
-          const { error } = await supabase
-            .from("watchlist")
-            .delete()
-            .eq("user_id", userId)
-            .eq("show_id", showId);
+          const { error } = await withTimeout(
+            supabase
+              .from("watchlist")
+              .delete()
+              .eq("user_id", userId)
+              .eq("show_id", showId),
+            2500,
+            { error: { message: "Remote delete timed out" } },
+          );
           if (error) {
             console.warn("[Watchlist] Remote delete notice:", error.message);
           }

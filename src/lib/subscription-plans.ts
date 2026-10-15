@@ -159,6 +159,8 @@ export const SUBSCRIPTION_FAQS = [
 
 export const ACTIVE_PLAN_STORAGE_KEY = "tadka4u_active_plan";
 
+import { validateSubscriptionIntegrity } from "./security";
+
 export function getStoredSubscription(): {
   planId: "mobile" | "super" | "premium" | null;
   subscribedAt: string | null;
@@ -170,7 +172,14 @@ export function getStoredSubscription(): {
   try {
     const raw = window.localStorage.getItem(ACTIVE_PLAN_STORAGE_KEY);
     if (!raw) return { planId: null, subscribedAt: null, billing: "monthly" };
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw);
+    const validated = validateSubscriptionIntegrity(parsed);
+    if (!validated) {
+      // Corrupted or tampered subscription data: purge it cleanly
+      window.localStorage.removeItem(ACTIVE_PLAN_STORAGE_KEY);
+      return { planId: null, subscribedAt: null, billing: "monthly" };
+    }
+    return validated;
   } catch {
     return { planId: null, subscribedAt: null, billing: "monthly" };
   }

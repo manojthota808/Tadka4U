@@ -31,6 +31,7 @@ import {
   GOOGLE_CLOUD_DEFAULT_STREAMS,
 } from "@/lib/video-streaming";
 import type { Show } from "@/lib/catalog";
+import { isSafeUrl } from "@/lib/security";
 
 export interface VideoPlayerProps {
   show: Show;
@@ -80,7 +81,8 @@ export function VideoPlayer({
     GOOGLE_CLOUD_DEFAULT_STREAMS[
       (episodeNumber - 1) % GOOGLE_CLOUD_DEFAULT_STREAMS.length
     ]?.url ?? GOOGLE_CLOUD_DEFAULT_STREAMS[0]!.url;
-  const currentVideoUrl = useFallbackStream ? fallbackUrl : primaryUrl;
+  const rawVideoUrl = useFallbackStream ? fallbackUrl : primaryUrl;
+  const currentVideoUrl = isSafeUrl(rawVideoUrl) ? rawVideoUrl : fallbackUrl;
   const isGcs = isGoogleCloudStorageUrl(currentVideoUrl);
 
   // Reset states on episode change
