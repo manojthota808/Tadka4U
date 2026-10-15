@@ -3,6 +3,8 @@ import { Search, Home, Compass, Bookmark, Film, Mail } from "lucide-react";
 import { Show, UserButton, useUser } from "@clerk/react";
 import { Button } from "@/components/ui/button";
 import { Brand } from "./Brand";
+import { useShows } from "@/api";
+import { NotificationBell } from "../notifications";
 
 const nav = [
   { label: "Home", to: "/" as const, icon: Home },
@@ -15,9 +17,13 @@ const nav = [
 export function Header() {
   const path = useRouterState({ select: (s) => s.location.pathname });
   const { user } = useUser();
+  const allShows = useShows();
   const userEmail =
     user?.primaryEmailAddress?.emailAddress?.toLowerCase().trim() || "";
   const isAdmin = userEmail === "thotamanojnaidu@gmail.com";
+
+  // New releases to display in notification drawer
+  const newReleases = allShows.filter((s) => s.isCustom || s.badge === "NEW");
 
   return (
     <>
@@ -40,6 +46,8 @@ export function Header() {
               <Search className="size-5" />
             </Link>
           </Button>
+
+          <NotificationBell recentShows={newReleases} />
 
           <Show when="signed-out">
             <Button variant="cinema" className="signin" asChild>

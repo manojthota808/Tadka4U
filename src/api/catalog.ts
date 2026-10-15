@@ -7,6 +7,7 @@ import {
 } from "@/lib/catalog";
 import { supabase } from "./client";
 import type { NewShowInput } from "./types";
+import { triggerNewReleaseNotification } from "@/frontend/components/notifications";
 
 const CUSTOM_SHOWS_KEY = "tadka4u_custom_shows";
 
@@ -176,6 +177,8 @@ function updateCurrentShows(customList: Show[]) {
   notifyListeners();
 }
 
+let hasInitialSynced = false;
+
 async function syncRemoteShows(): Promise<void> {
   if (!isSupabaseConfigured()) return;
   try {
@@ -211,20 +214,34 @@ async function syncRemoteShows(): Promise<void> {
       };
     });
 
-    const local = getLocalCustomShows();
-    const remoteIds = new Set(remoteShows.map((s) => s.id));
-    const merged = [
-      ...remoteShows,
-      ...local.filter((l) => !remoteIds.has(l.id)),
-    ];
-    setLocalCustomShows(merged);
-    updateCurrentShows(merged);
+    const previousKnownIds = new Set(currentShows.map((s) => s.id));
+    const seedIds = new Set(seedShows.map((s) => s.id));
+
+    // Detect newly added shows that were not previously in memory and not original seed shows
+    const newlyAddedShows = hasInitialSynced
+      ? remoteShows.filter(
+          (r) => !previousKnownIds.has(r.id) && !seedIds.has(r.id),
+        )
+      : [];
+
+    // Supabase cloud is authoritative!
+    // Overwrite local custom shows directly so deleted cloud shows are immediately purged from both localStorage & IndexedDB!
+    setLocalCustomShows(remoteShows);
+    updateCurrentShows(remoteShows);
+    hasInitialSynced = true;
+
+    // Trigger in-app toast & desktop notification for all active users
+    if (newlyAddedShows.length > 0) {
+      newlyAddedShows.forEach((newShow) => {
+        triggerNewReleaseNotification(newShow);
+      });
+    }
   } catch (err) {
     console.warn("[Catalog] Supabase sync notice:", err);
   }
 }
 
-// Client-side initial sync with IndexedDB and Supabase if configured
+// Client-side initial sync with IndexedDB, Supabase Realtime, and periodic heartbeat
 if (typeof window !== "undefined") {
   window.addEventListener("storage", (e) => {
     if (e.key === CUSTOM_SHOWS_KEY) {
@@ -234,26 +251,63 @@ if (typeof window !== "undefined") {
   });
 
   window.addEventListener("focus", () => {
-    syncRemoteShows();
+    syncRemoteShows().catch(() => {});
   });
 
-  // Restore from IndexedDB if localStorage was cleared or missing
-  loadFromIndexedDb()
-    .then((idbShows) => {
-      if (idbShows && idbShows.length > 0) {
-        const local = getLocalCustomShows();
-        const localIds = new Set(local.map((s) => s.id));
-        const missing = idbShows.filter((s) => !localIds.has(s.id));
-        if (missing.length > 0) {
-          const merged = [...local, ...missing];
-          setLocalCustomShows(merged);
-          updateCurrentShows(merged);
-        }
-      }
-    })
-    .catch(() => {});
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") {
+      syncRemoteShows().catch(() => {});
+    }
+  });
 
-  syncRemoteShows();
+  // Supabase Realtime Channel: Instantly refresh when any show is published or deleted
+  if (isSupabaseConfigured()) {
+    try {
+      const clientWithRealtime = supabase as unknown as {
+        channel: (name: string) => {
+          on: (
+            type: string,
+            filter: Record<string, unknown>,
+            callback: (payload: unknown) => void,
+          ) => { subscribe: () => unknown };
+        };
+      };
+      if (typeof clientWithRealtime.channel === "function") {
+        clientWithRealtime
+          .channel("tadka4u-catalog-realtime")
+          .on(
+            "postgres_changes",
+            { event: "*", schema: "public", table: "shows" },
+            () => {
+              syncRemoteShows().catch(() => {});
+            },
+          )
+          .subscribe();
+      }
+    } catch (e) {
+      console.warn("[Catalog] Realtime channel setup:", e);
+    }
+  }
+
+  // Periodic heartbeat poller every 8 seconds for resilient multi-device sync
+  setInterval(() => {
+    syncRemoteShows().catch(() => {});
+  }, 8000);
+
+  // Restore from IndexedDB only if localStorage is currently empty
+  const local = getLocalCustomShows();
+  if (local.length === 0) {
+    loadFromIndexedDb()
+      .then((idbShows) => {
+        if (idbShows && idbShows.length > 0 && !hasInitialSynced) {
+          updateCurrentShows(idbShows);
+        }
+      })
+      .catch(() => {});
+  }
+
+  // Initial remote sync
+  syncRemoteShows().catch(() => {});
 }
 
 export const catalogApi = {
