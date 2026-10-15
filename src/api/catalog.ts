@@ -207,7 +207,7 @@ async function syncRemoteShows(): Promise<void> {
         title: String(row["title"]),
         genre: String(row["genre"]),
         image: String(row["image"]),
-        episodes: Number(row["episodes"]) || 4,
+        episodes: Number(row["episodes"]) || 2,
         badge: row["badge"] ? String(row["badge"]) : undefined,
         description: String(row["description"] || ""),
         rating: String(row["rating"] || "4.8"),
@@ -454,7 +454,7 @@ export const catalogApi = {
         title: input.title.trim(),
         genre: input.genre.trim(),
         image: finalImageUrl,
-        episodes: Math.max(1, Number(input.episodes) || 4),
+        episodes: Math.max(1, Number(input.episodes) || 2),
         badge: input.badge?.trim() ? input.badge.trim() : undefined,
         description:
           input.description?.trim() || "A captivating short drama on Tadka4U.",

@@ -222,7 +222,7 @@ function AdminPage() {
   const [genre, setGenre] = useState("Romance");
   const [customGenre, setCustomGenre] = useState("");
   const [isCustomGenre, setIsCustomGenre] = useState(false);
-  const [episodes, setEpisodes] = useState("4");
+  const [episodes, setEpisodes] = useState("2");
   const [rating, setRating] = useState("4.8");
   const [badge, setBadge] = useState("NEW");
   const [description, setDescription] = useState("");
@@ -280,7 +280,7 @@ function AdminPage() {
     return clean || "show-title";
   }, [title]);
 
-  const episodeCountNum = Math.max(1, Math.min(16, Number(episodes) || 4));
+  const episodeCountNum = Math.max(1, Math.min(16, Number(episodes) || 2));
 
   const handleEpisodeFileSelect = (epNum: number, file: File) => {
     const previewUrl = URL.createObjectURL(file);
@@ -528,7 +528,7 @@ function AdminPage() {
           title,
           genre: finalGenre,
           image: finalImage,
-          episodes: Number(episodes) || 4,
+          episodes: Number(episodes) || 2,
           badge: badge.trim() || undefined,
           description:
             description.trim() || "A captivating short drama on Tadka4U.",
@@ -571,7 +571,7 @@ function AdminPage() {
       setEpisodeFiles({});
       setEpisodeUploadStatus({});
       setActiveTestEpisode(null);
-      setEpisodes("4");
+      setEpisodes("2");
       setRating("4.8");
       setBadge("NEW");
       setIsHero(false);
@@ -1378,7 +1378,7 @@ function AdminPage() {
                         value={m.genre}
                         className="bg-card text-foreground"
                       >
-                        {m.genre} ➔ Shelf: "{m.shelfTitle}" [{m.tag}]
+                        {m.genre}
                       </option>
                     ))}
                     <option value="other" className="bg-card text-foreground">
