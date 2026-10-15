@@ -72,7 +72,7 @@ describe("API Layer - Catalog API", () => {
     expect(delError).toBeNull();
     expect(success).toBe(true);
     expect(catalogApi.getShowById(show!.id)).toBeUndefined();
-  });
+  }, 15000);
 
   it("prevents deleting original catalog seed shows", async () => {
     const { success, error } = await catalogApi.deleteShow("midnight-promise");
@@ -80,7 +80,7 @@ describe("API Layer - Catalog API", () => {
     expect(error?.message).toContain(
       "Original catalog shows cannot be removed",
     );
-  });
+  }, 15000);
 });
 
 describe("API Layer - Watchlist API", () => {
@@ -96,7 +96,7 @@ describe("API Layer - Watchlist API", () => {
     const { showIds, error } = await watchlistApi.getUserWatchlist(testUser);
     expect(error).toBeNull();
     expect(showIds).toEqual([]);
-  });
+  }, 15000);
 
   it("adds show to watchlist successfully", async () => {
     const { error } = await watchlistApi.addToWatchlist(
@@ -107,7 +107,7 @@ describe("API Layer - Watchlist API", () => {
 
     const { showIds } = await watchlistApi.getUserWatchlist(testUser);
     expect(showIds).toContain("midnight-promise");
-  });
+  }, 15000);
 
   it("toggles show in watchlist (removes when present)", async () => {
     await watchlistApi.addToWatchlist(testUser, "midnight-promise");
@@ -121,7 +121,7 @@ describe("API Layer - Watchlist API", () => {
 
     const { showIds } = await watchlistApi.getUserWatchlist(testUser);
     expect(showIds).not.toContain("midnight-promise");
-  });
+  }, 15000);
 
   it("migrates guest watchlist items to user account", async () => {
     await watchlistApi.addToWatchlist("guest", "shadows-of-delhi");

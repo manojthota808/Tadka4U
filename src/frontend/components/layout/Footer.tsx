@@ -17,6 +17,7 @@ export function Footer() {
         © 2026 Tadka4U. All artwork and stories are illustrative.
       </p>
       <div className="footer-links">
+        <Link to="/plans">Plans & Pricing</Link>
         <Link to="/about">About us</Link>
         <Link to="/contact">Contact</Link>
         <Link to="/privacy">Privacy</Link>

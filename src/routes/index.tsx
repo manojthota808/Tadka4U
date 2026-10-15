@@ -19,6 +19,7 @@ import {
   AppBand,
   useAccount,
   pageHead,
+  VipBanner,
 } from "@/frontend";
 import { useShows, genres, filterShows, type Show } from "@/api";
 
@@ -268,6 +269,9 @@ function Index() {
                 ranked
               />
             )}
+
+            {/* VIP Subscription Plans Banner */}
+            <VipBanner />
 
             {/* Drama Stories */}
             {dramaShows.length > 0 && (

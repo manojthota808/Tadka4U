@@ -17,6 +17,7 @@ import { Route as ContactRouteImport } from './routes/contact'
 import { Route as ExploreRouteImport } from './routes/explore'
 import { Route as MyListRouteImport } from './routes/my-list'
 import { Route as OriginalsRouteImport } from './routes/originals'
+import { Route as PlansRouteImport } from './routes/plans'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as TermsRouteImport } from './routes/terms'
@@ -64,6 +65,11 @@ const OriginalsRoute = OriginalsRouteImport.update({
   path: '/originals',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PlansRoute = PlansRouteImport.update({
+  id: '/plans',
+  path: '/plans',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PrivacyRoute = PrivacyRouteImport.update({
   id: '/privacy',
   path: '/privacy',
@@ -104,6 +110,7 @@ export interface FileRoutesByFullPath {
   '/explore': typeof ExploreRoute
   '/my-list': typeof MyListRoute
   '/originals': typeof OriginalsRoute
+  '/plans': typeof PlansRoute
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
   '/terms': typeof TermsRoute
@@ -120,6 +127,7 @@ export interface FileRoutesByTo {
   '/explore': typeof ExploreRoute
   '/my-list': typeof MyListRoute
   '/originals': typeof OriginalsRoute
+  '/plans': typeof PlansRoute
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
   '/terms': typeof TermsRoute
@@ -137,6 +145,7 @@ export interface FileRoutesById {
   '/explore': typeof ExploreRoute
   '/my-list': typeof MyListRoute
   '/originals': typeof OriginalsRoute
+  '/plans': typeof PlansRoute
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
   '/terms': typeof TermsRoute
@@ -155,6 +164,7 @@ export interface FileRouteTypes {
     | '/explore'
     | '/my-list'
     | '/originals'
+    | '/plans'
     | '/privacy'
     | '/reset-password'
     | '/terms'
@@ -171,6 +181,7 @@ export interface FileRouteTypes {
     | '/explore'
     | '/my-list'
     | '/originals'
+    | '/plans'
     | '/privacy'
     | '/reset-password'
     | '/terms'
@@ -187,6 +198,7 @@ export interface FileRouteTypes {
     | '/explore'
     | '/my-list'
     | '/originals'
+    | '/plans'
     | '/privacy'
     | '/reset-password'
     | '/terms'
@@ -204,6 +216,7 @@ export interface RootRouteChildren {
   ExploreRoute: typeof ExploreRoute
   MyListRoute: typeof MyListRoute
   OriginalsRoute: typeof OriginalsRoute
+  PlansRoute: typeof PlansRoute
   PrivacyRoute: typeof PrivacyRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   TermsRoute: typeof TermsRoute
@@ -270,6 +283,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OriginalsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/plans': {
+      id: '/plans'
+      path: '/plans'
+      fullPath: '/plans'
+      preLoaderRoute: typeof PlansRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/privacy': {
       id: '/privacy'
       path: '/privacy'
@@ -324,6 +344,7 @@ const rootRouteChildren: RootRouteChildren = {
   ExploreRoute: ExploreRoute,
   MyListRoute: MyListRoute,
   OriginalsRoute: OriginalsRoute,
+  PlansRoute: PlansRoute,
   PrivacyRoute: PrivacyRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   TermsRoute: TermsRoute,

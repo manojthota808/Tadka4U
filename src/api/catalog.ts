@@ -45,6 +45,17 @@ interface DynamicSupabaseClient {
 
 const dynamicDb = supabase as unknown as DynamicSupabaseClient;
 
+function withTimeout<T>(
+  promise: PromiseLike<T>,
+  ms: number = 3000,
+  fallback: T,
+): Promise<T> {
+  return Promise.race([
+    Promise.resolve(promise),
+    new Promise<T>((resolve) => setTimeout(() => resolve(fallback), ms)),
+  ]);
+}
+
 function isSupabaseConfigured(): boolean {
   try {
     const url =
@@ -182,7 +193,11 @@ let hasInitialSynced = false;
 async function syncRemoteShows(): Promise<void> {
   if (!isSupabaseConfigured()) return;
   try {
-    const { data, error } = await dynamicDb.from("shows").select("*");
+    const { data, error } = await withTimeout(
+      dynamicDb.from("shows").select("*"),
+      3000,
+      { data: null, error: { message: "Supabase sync timed out" } },
+    );
     if (error || !Array.isArray(data)) return;
 
     const remoteShows: Show[] = data.map((item) => {
@@ -472,9 +487,11 @@ export const catalogApi = {
             episode_videos: newShow.episodeVideos ?? null,
           };
 
-          const { error: dbError } = await dynamicDb
-            .from("shows")
-            .insert(insertPayload);
+          const { error: dbError } = await withTimeout(
+            dynamicDb.from("shows").insert(insertPayload),
+            3000,
+            { error: { message: "Supabase insert timed out" } },
+          );
           if (dbError) {
             // If video_url or is_hero column doesn't exist yet, retry with basic fields
             const fallbackPayload: Record<string, unknown> = {
@@ -488,9 +505,11 @@ export const catalogApi = {
               rating: newShow.rating,
               is_custom: true,
             };
-            const { error: retryErr } = await dynamicDb
-              .from("shows")
-              .insert(fallbackPayload);
+            const { error: retryErr } = await withTimeout(
+              dynamicDb.from("shows").insert(fallbackPayload),
+              3000,
+              { error: { message: "Supabase fallback insert timed out" } },
+            );
             if (!retryErr) {
               remoteSaved = true;
             } else {
@@ -577,7 +596,11 @@ export const catalogApi = {
       // Remove from Supabase
       if (isSupabaseConfigured()) {
         try {
-          await dynamicDb.from("shows").delete().eq("id", id);
+          await withTimeout(
+            dynamicDb.from("shows").delete().eq("id", id),
+            3000,
+            { error: null },
+          );
         } catch (err) {
           console.warn("[Catalog] Remote delete notice:", err);
         }

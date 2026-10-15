@@ -1,9 +1,18 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Search, Home, Compass, Bookmark, Film, Mail } from "lucide-react";
+import {
+  Search,
+  Home,
+  Compass,
+  Bookmark,
+  Film,
+  Mail,
+  Crown,
+} from "lucide-react";
 import { Show, UserButton, useUser } from "@clerk/react";
 import { Button } from "@/components/ui/button";
 import { Brand } from "./Brand";
 import { useShows } from "@/api";
+import { useAccount } from "@/frontend/context";
 import { NotificationBell } from "../notifications";
 
 const nav = [
@@ -11,6 +20,7 @@ const nav = [
   { label: "Explore", to: "/explore" as const, icon: Compass },
   { label: "Originals", to: "/originals" as const, icon: Film },
   { label: "My List", to: "/my-list" as const, icon: Bookmark },
+  { label: "Plans", to: "/plans" as const, icon: Crown },
   { label: "Contact", to: "/contact" as const, icon: Mail },
 ];
 
@@ -18,6 +28,7 @@ export function Header() {
   const path = useRouterState({ select: (s) => s.location.pathname });
   const { user } = useUser();
   const allShows = useShows();
+  const { isVip, plan } = useAccount();
   const userEmail =
     user?.primaryEmailAddress?.emailAddress?.toLowerCase().trim() || "";
   const isAdmin = userEmail === "thotamanojnaidu@gmail.com";
@@ -48,6 +59,30 @@ export function Header() {
           </Button>
 
           <NotificationBell recentShows={newReleases} />
+
+          {/* VIP Badge or Get VIP Button */}
+          {isVip ? (
+            <Link
+              to="/plans"
+              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-amber-500/20 to-amber-600/20 border border-amber-500/40 text-amber-300 text-xs font-bold uppercase tracking-wider hover:border-amber-400 transition-all shadow-sm"
+              title={`Active ${plan} VIP Membership`}
+            >
+              <Crown className="size-3.5 fill-amber-400 text-amber-400 animate-pulse" />
+              <span>VIP Active</span>
+            </Link>
+          ) : (
+            <Button
+              variant="outline"
+              size="sm"
+              asChild
+              className="hidden lg:inline-flex text-xs font-bold border-amber-500/40 text-amber-400 hover:bg-amber-500/10 gap-1.5 h-8 rounded-full"
+            >
+              <Link to="/plans">
+                <Crown className="size-3.5 text-amber-400 fill-amber-400/20" />
+                <span>Get VIP</span>
+              </Link>
+            </Button>
+          )}
 
           <Show when="signed-out">
             <Button variant="cinema" className="signin" asChild>

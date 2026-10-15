@@ -9,6 +9,11 @@ import {
 import { useUser } from "@clerk/react";
 import { watchlistApi } from "@/api";
 import { toast } from "sonner";
+import {
+  getStoredSubscription,
+  saveStoredSubscription,
+  SUBSCRIPTION_PLANS,
+} from "@/lib/subscription-plans";
 
 export interface AccountUser {
   id: string;
@@ -22,6 +27,14 @@ export interface AccountContextType {
   saved: string[];
   toggle: (id: string) => void;
   isLoaded: boolean;
+  plan: "mobile" | "super" | "premium" | null;
+  billingCycle: "monthly" | "annual";
+  isVip: boolean;
+  subscribeToPlan: (
+    planId: "mobile" | "super" | "premium",
+    billing?: "monthly" | "annual",
+  ) => void;
+  cancelSubscription: () => void;
 }
 
 export const AccountContext = createContext<AccountContextType>({
@@ -29,11 +42,19 @@ export const AccountContext = createContext<AccountContextType>({
   saved: [],
   toggle: () => {},
   isLoaded: false,
+  plan: null,
+  billingCycle: "monthly",
+  isVip: false,
+  subscribeToPlan: () => {},
+  cancelSubscription: () => {},
 });
 
 export function AccountProvider({ children }: { children: ReactNode }) {
   const { user: clerkUser, isLoaded, isSignedIn } = useUser();
   const [saved, setSaved] = useState<string[]>([]);
+  const [subscription, setSubscription] = useState(() =>
+    getStoredSubscription(),
+  );
 
   const user = useMemo<AccountUser | null>(() => {
     if (!isSignedIn || !clerkUser) return null;
@@ -106,8 +127,42 @@ export function AccountProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const subscribeToPlan = (
+    planId: "mobile" | "super" | "premium",
+    billing: "monthly" | "annual" = "monthly",
+  ) => {
+    saveStoredSubscription(planId, billing);
+    setSubscription({
+      planId,
+      subscribedAt: new Date().toISOString(),
+      billing,
+    });
+    const foundPlan = SUBSCRIPTION_PLANS.find((p) => p.id === planId);
+    toast.success(`🎉 Subscribed to ${foundPlan?.name || "VIP Plan"}!`, {
+      description: "All episodes and premium features unlocked.",
+    });
+  };
+
+  const cancelSubscription = () => {
+    saveStoredSubscription(null);
+    setSubscription({ planId: null, subscribedAt: null, billing: "monthly" });
+    toast.info("Subscription cancelled. You are currently on the Free tier.");
+  };
+
   return (
-    <AccountContext.Provider value={{ user, saved, toggle, isLoaded }}>
+    <AccountContext.Provider
+      value={{
+        user,
+        saved,
+        toggle,
+        isLoaded,
+        plan: subscription.planId,
+        billingCycle: subscription.billing,
+        isVip: Boolean(subscription.planId),
+        subscribeToPlan,
+        cancelSubscription,
+      }}
+    >
       {children}
     </AccountContext.Provider>
   );

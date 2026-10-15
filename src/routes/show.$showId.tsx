@@ -1,6 +1,15 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useRef, useEffect } from "react";
-import { Plus, Check, Play, Star, X, Film, ChevronDown } from "lucide-react";
+import {
+  Plus,
+  Check,
+  Play,
+  Star,
+  X,
+  Film,
+  ChevronDown,
+  Crown,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   PageLayout,
@@ -9,6 +18,8 @@ import {
   useAccount,
   pageHead,
   VideoPlayer,
+  SubscriptionModal,
+  VipBanner,
 } from "@/frontend";
 import {
   Carousel,
@@ -39,9 +50,10 @@ function ShowDetail() {
   const allShows = useShows();
   const dynamicShow = allShows.find((s) => s.id === showId);
   const show = dynamicShow ?? initialShow;
-  const { saved, toggle } = useAccount();
+  const { saved, toggle, isVip } = useAccount();
   const [episode, setEpisode] = useState<number | null>(null);
   const [showEpisodeMenu, setShowEpisodeMenu] = useState(false);
+  const [showVipModal, setShowVipModal] = useState(false);
   const playerRef = useRef<HTMLElement>(null);
   const episodeMenuRef = useRef<HTMLDivElement>(null);
 
@@ -238,6 +250,16 @@ function ShowDetail() {
                 {saved.includes(show.id) ? <Check /> : <Plus />}
                 My List
               </Button>
+              {!isVip && (
+                <Button
+                  variant="outline"
+                  onClick={() => setShowVipModal(true)}
+                  className="gap-2 border-amber-500/40 text-amber-300 hover:bg-amber-500/10 cursor-pointer"
+                >
+                  <Crown className="size-4 text-amber-400" />
+                  <span>VIP Pass</span>
+                </Button>
+              )}
             </div>
           </div>
         </div>
@@ -275,7 +297,15 @@ function ShowDetail() {
                       </div>
                     </div>
                     <span className="flex items-center justify-between w-full">
-                      <span>Episode {i + 1}</span>
+                      <span className="flex items-center gap-1.5">
+                        <span>Episode {i + 1}</span>
+                        {i > 0 && !isVip && (
+                          <span className="text-[9px] font-bold uppercase text-amber-400 bg-amber-500/15 border border-amber-500/30 px-1 rounded flex items-center gap-0.5">
+                            <Crown className="size-2.5 fill-amber-400" />
+                            VIP
+                          </span>
+                        )}
+                      </span>
                       {episode === i + 1 && (
                         <span className="text-[10px] text-primary font-bold flex items-center gap-1">
                           <Play className="size-2.5 fill-primary" />
@@ -297,6 +327,10 @@ function ShowDetail() {
             />
           </Carousel>
         </section>
+
+        {/* Subscription VIP Banner */}
+        <VipBanner />
+
         <div className="mt-14">
           <Shelf
             title="More stories to fall for"
@@ -304,6 +338,11 @@ function ShowDetail() {
           />
         </div>
       </main>
+
+      <SubscriptionModal
+        isOpen={showVipModal}
+        onClose={() => setShowVipModal(false)}
+      />
     </PageLayout>
   );
 }
